@@ -301,7 +301,9 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             kingdom.id(),
             kingdom.name(),
             kingdom.currencyName(),
-            kingdom.crest(),
+            // Coins use the Royal Crown as the shared, fixed centre mark.
+            // The kingdom still owns its separate crest and currency identity.
+            Symbol.CROWN,
             material,
             kingdom.value(request.metal()),
             request.styleId(),

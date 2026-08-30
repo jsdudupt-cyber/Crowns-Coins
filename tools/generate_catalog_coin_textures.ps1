@@ -1,56 +1,136 @@
-$ErrorActionPreference = 'Stop'
+[CmdletBinding()]
+param(
+    [string]$ResourceRoot = (Join-Path $PSScriptRoot '..\src\main\resources')
+)
 
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 
-$assetsRoot = Join-Path $PSScriptRoot '..\src\main\resources\assets\crownscoins\textures'
-$coinDirectory = Join-Path $assetsRoot 'item\coin'
-$crestPath = Join-Path $assetsRoot 'item\overlay\crest_center\04_crown.png'
-$symbolDirectory = Join-Path $assetsRoot 'item\overlay\symbol_right'
-$targetDirectory = Join-Path $assetsRoot 'gui\catalog_coin'
-New-Item -ItemType Directory -Force -Path $targetDirectory | Out-Null
+$symbolNames = @(
+    'sun', 'moon', 'star', 'crown', 'sword', 'shield', 'tower', 'dragon', 'wolf', 'eagle',
+    'lion', 'horse', 'hammer', 'anvil', 'heart', 'flame', 'wave', 'leaf', 'flower', 'diamond',
+    'mountain', 'river', 'cross', 'lightning', 'compass'
+)
 
-$metals = @{
-    bronze = 'copper'
-    iron = 'iron'
-    gold = 'gold'
-}
+$assetsRoot = Join-Path $ResourceRoot 'assets/crownscoins'
+$coinRoot = Join-Path $assetsRoot 'textures/item/coin'
+$overlayRoot = Join-Path $assetsRoot 'textures/item/overlay'
+$outputRoot = Join-Path $assetsRoot 'textures/gui/catalog_coin'
 
-$crown = [System.Drawing.Bitmap]::FromFile($crestPath)
-try {
-    Get-ChildItem -LiteralPath $symbolDirectory -Filter '*.png' | Sort-Object Name | ForEach-Object {
-        $symbol = [System.Drawing.Bitmap]::FromFile($_.FullName)
-        try {
-            foreach ($metalName in $metals.Keys) {
-                $basePath = Join-Path $coinDirectory ("{0}_04_crown.png" -f $metals[$metalName])
-                $base = [System.Drawing.Bitmap]::FromFile($basePath)
-                $target = [System.Drawing.Bitmap]::new(32, 32, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
-                try {
-                    $graphics = [System.Drawing.Graphics]::FromImage($target)
-                    try {
-                        $graphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceCopy
-                        $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::NearestNeighbor
-                        $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::Half
-                        $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::None
-                        # A catalog card is a true miniature of the finished
-                        # coin: fixed crown in the centre + one candidate mark.
-                        $graphics.DrawImageUnscaled($base, 0, 0)
-                        $graphics.DrawImageUnscaled($crown, 0, 0)
-                        $graphics.DrawImageUnscaled($symbol, 0, 0)
-                    } finally {
-                        $graphics.Dispose()
-                    }
-                    $target.Save((Join-Path $targetDirectory ("{0}_{1}" -f $metalName, $_.Name)), [System.Drawing.Imaging.ImageFormat]::Png)
-                } finally {
-                    $base.Dispose()
-                    $target.Dispose()
-                }
+function Get-VisibleBounds([System.Drawing.Bitmap]$Bitmap) {
+    $left = $Bitmap.Width
+    $top = $Bitmap.Height
+    $right = -1
+    $bottom = -1
+    for ($x = 0; $x -lt $Bitmap.Width; $x++) {
+        for ($y = 0; $y -lt $Bitmap.Height; $y++) {
+            if ($Bitmap.GetPixel($x, $y).A -gt 0) {
+                $left = [Math]::Min($left, $x)
+                $top = [Math]::Min($top, $y)
+                $right = [Math]::Max($right, $x)
+                $bottom = [Math]::Max($bottom, $y)
             }
-        } finally {
-            $symbol.Dispose()
         }
     }
-} finally {
-    $crown.Dispose()
+    if ($right -lt $left -or $bottom -lt $top) {
+        return [System.Drawing.Rectangle]::Empty
+    }
+    return [System.Drawing.Rectangle]::FromLTRB($left, $top, $right + 1, $bottom + 1)
 }
 
-Write-Output "Prepared 75 crown-centred coin catalogue thumbnails in $targetDirectory"
+function New-TintedBitmap([System.Drawing.Bitmap]$Source, [System.Drawing.Color]$Tint) {
+    $result = [System.Drawing.Bitmap]::new($Source.Width, $Source.Height, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    for ($x = 0; $x -lt $Source.Width; $x++) {
+        for ($y = 0; $y -lt $Source.Height; $y++) {
+            $pixel = $Source.GetPixel($x, $y)
+            if ($pixel.A -gt 0) {
+                $result.SetPixel($x, $y, [System.Drawing.Color]::FromArgb($pixel.A, $Tint.R, $Tint.G, $Tint.B))
+            }
+        }
+    }
+    return $result
+}
+
+function Draw-NormalizedSymbol(
+    [System.Drawing.Graphics]$Graphics,
+    [System.Drawing.Bitmap]$Bitmap,
+    [int]$X,
+    [int]$Y,
+    [int]$Size
+) {
+    $bounds = Get-VisibleBounds $Bitmap
+    if ($bounds.IsEmpty) {
+        return
+    }
+    $scale = [Math]::Min($Size / $bounds.Width, $Size / $bounds.Height)
+    $width = [Math]::Max(1, [int][Math]::Round($bounds.Width * $scale))
+    $height = [Math]::Max(1, [int][Math]::Round($bounds.Height * $scale))
+    $destination = [System.Drawing.Rectangle]::new(
+        $X + [int](($Size - $width) / 2),
+        $Y + [int](($Size - $height) / 2),
+        $width,
+        $height
+    )
+    $Graphics.DrawImage($Bitmap, $destination, $bounds, [System.Drawing.GraphicsUnit]::Pixel)
+}
+
+$metals = @(
+    [pscustomobject]@{ Name = 'bronze'; Base = 'copper_04_crown.png'; SymbolTint = [System.Drawing.Color]::FromArgb(255, 232, 159, 79) },
+    [pscustomobject]@{ Name = 'iron';   Base = 'iron_04_crown.png';   SymbolTint = [System.Drawing.Color]::FromArgb(255, 222, 229, 235) },
+    [pscustomobject]@{ Name = 'gold';   Base = 'gold_04_crown.png';   SymbolTint = [System.Drawing.Color]::FromArgb(255, 255, 220, 67) }
+)
+$crownTint = [System.Drawing.Color]::FromArgb(255, 255, 215, 72)
+$shadowTint = [System.Drawing.Color]::FromArgb(255, 55, 38, 20)
+
+[void][System.IO.Directory]::CreateDirectory($outputRoot)
+
+foreach ($metal in $metals) {
+    $basePath = Join-Path $coinRoot $metal.Base
+    $base = [System.Drawing.Bitmap]::new($basePath)
+    $crownSource = [System.Drawing.Bitmap]::new((Join-Path $overlayRoot 'crest/04_crown.png'))
+    $crown = New-TintedBitmap $crownSource $crownTint
+    $crownShadow = New-TintedBitmap $crownSource $shadowTint
+    try {
+        foreach ($index in 0..($symbolNames.Count - 1)) {
+            $name = ('{0:D2}_{1}' -f ($index + 1), $symbolNames[$index])
+            $symbolSource = [System.Drawing.Bitmap]::new((Join-Path $overlayRoot "symbol/$name.png"))
+            $symbol = New-TintedBitmap $symbolSource $metal.SymbolTint
+            $symbolShadow = New-TintedBitmap $symbolSource $shadowTint
+            $target = [System.Drawing.Bitmap]::new(32, 32, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+            $graphics = [System.Drawing.Graphics]::FromImage($target)
+            try {
+                $graphics.Clear([System.Drawing.Color]::Transparent)
+                $graphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceCopy
+                $graphics.DrawImageUnscaled($base, 0, 0)
+                # SourceOver is essential: transparent pixels in an overlay must not erase the coin below.
+                $graphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceOver
+                $graphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighSpeed
+                $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::NearestNeighbor
+                $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::Half
+
+                # The catalogue reads as a finished miniature: small fixed Crown in the centre,
+                # with the selectable symbol clearly visible to its left.
+                Draw-NormalizedSymbol $graphics $symbolShadow 4 13 8
+                Draw-NormalizedSymbol $graphics $symbol 3 12 8
+                Draw-NormalizedSymbol $graphics $crownShadow 14 13 7
+                Draw-NormalizedSymbol $graphics $crown 13 12 7
+
+                $target.Save((Join-Path $outputRoot ("{0}_{1}.png" -f $metal.Name, $name)), [System.Drawing.Imaging.ImageFormat]::Png)
+            } finally {
+                $graphics.Dispose()
+                $target.Dispose()
+                $symbolShadow.Dispose()
+                $symbol.Dispose()
+                $symbolSource.Dispose()
+            }
+        }
+    } finally {
+        $crownShadow.Dispose()
+        $crown.Dispose()
+        $crownSource.Dispose()
+        $base.Dispose()
+    }
+}
+
+Write-Output "Generated 75 complete crown-and-symbol catalogue coin textures under $outputRoot"

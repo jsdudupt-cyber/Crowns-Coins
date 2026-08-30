@@ -2,6 +2,7 @@ package com.crownscoins.client;
 
 import com.crownscoins.CrownsCoins;
 import com.crownscoins.coin.CoinData;
+import com.crownscoins.kingdom.Symbol;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -32,7 +33,9 @@ public record CoinDataSelectProperty(Selector selector) implements SelectItemMod
         }
         return switch (selector) {
             case STYLE -> data.styleId();
-            case CREST -> data.kingdomCrest().id();
+            // Every coin face uses the Royal Crown as its fixed central mark.
+            // The kingdom crest remains in CoinData for provenance and tooltips.
+            case CREST -> Symbol.CROWN.id();
             case SYMBOL_ONE -> symbolId(data, 0);
             case SYMBOL_TWO -> symbolId(data, 1);
             case SYMBOL_THREE -> symbolId(data, 2);

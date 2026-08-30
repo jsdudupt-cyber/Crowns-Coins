@@ -29,12 +29,12 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu> {
     private static final int SCREEN_WIDTH = 720;
     private static final int SCREEN_HEIGHT = 540;
-    private static final int TILE_WIDTH = 22;
-    private static final int TILE_HEIGHT = 16;
-    private static final int TILE_GAP_X = 2;
+    private static final int TILE_WIDTH = 24;
+    private static final int TILE_HEIGHT = 20;
+    private static final int TILE_GAP_X = 1;
     private static final int TILE_GAP_Y = 1;
-    private static final int GRID_TOP = 62;
-    private static final int[] GRID_LEFTS = {235, 393, 550};
+    private static final int GRID_TOP = 60;
+    private static final int[] GRID_LEFTS = {232, 390, 547};
     private static final int[] GRID_CENTERS = {294, 452, 609};
     private static final int PREVIEW_CENTER_X = 134;
     private static final int PREVIEW_CENTER_Y = 236;
@@ -307,18 +307,18 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
 
     private void renderCatalogTiles(GuiGraphicsExtractor graphics) {
         for (CatalogTile tile : this.catalogTiles) {
-            // The clickable Button is intentionally covered here so each choice
-            // reads as a minted coin, not a loose glyph inside a gray rectangle.
+            // Each tile is a readable miniature: the crown is the fixed centre
+            // of the coin and this tile's symbol is shown beside it.
             graphics.fill(tile.x(), tile.y(), tile.x() + TILE_WIDTH, tile.y() + TILE_HEIGHT, 0xFF171515);
             graphics.blit(
                 RenderPipelines.GUI_TEXTURED,
                 catalogCoinTexture(tile.metal(), tile.symbol()),
-                tile.x() + 3,
+                tile.x() + 2,
                 tile.y(),
                 0.0F,
                 0.0F,
-                16,
-                16,
+                20,
+                20,
                 32,
                 32,
                 32,
@@ -383,12 +383,11 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
             32,
             32
         );
-        // Use the identical full-canvas overlays used by the item model.  That
-        // keeps the fixed kingdom crest centred and the two selected glyphs in
-        // their own small left/right spaces on every coin.
+        // New coins always carry a small Crown as their fixed central mark.
+        // The two player selections sit in matched spaces to its left and right.
         graphics.blit(
             RenderPipelines.GUI_TEXTURED,
-            crestCenterTexture(this.display.crest()),
+            crestCenterTexture(Symbol.CROWN),
             previewX,
             previewY,
             0.0F,

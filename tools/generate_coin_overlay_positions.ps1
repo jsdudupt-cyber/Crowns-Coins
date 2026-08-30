@@ -72,13 +72,13 @@ foreach ($index in 0..($symbolNames.Count - 1)) {
     $name = ('{0:D2}_{1}' -f ($index + 1), $symbolNames[$index])
     $symbolSource = Join-Path $textureRoot "symbol/$name.png"
     $crestSource = Join-Path $textureRoot "crest/$name.png"
-    # The crest is fixed at the centre.  The two selected marks remain small
-    # and wholly inside the rim, leaving their left/right roles unmistakable.
-    Write-PositionedOverlay $crestSource (Join-Path $textureRoot "crest_center/$name.png") 10 9 13
-    Write-PositionedOverlay $symbolSource (Join-Path $textureRoot "symbol_left/$name.png") 3 13 6
-    Write-PositionedOverlay $symbolSource (Join-Path $textureRoot "symbol_right/$name.png") 23 13 6
+    # The Crown is fixed in the middle and deliberately a little smaller than
+    # the two selectable side symbols, so the three marks remain distinct.
+    Write-PositionedOverlay $crestSource (Join-Path $textureRoot "crest_center/$name.png") 13 12 7
+    Write-PositionedOverlay $symbolSource (Join-Path $textureRoot "symbol_left/$name.png") 3 12 8
+    Write-PositionedOverlay $symbolSource (Join-Path $textureRoot "symbol_right/$name.png") 21 12 8
     # Retain the old lower position only for historic three-symbol coins.
-    Write-PositionedOverlay $symbolSource (Join-Path $textureRoot "symbol_bottom/$name.png") 13 23 6
+    Write-PositionedOverlay $symbolSource (Join-Path $textureRoot "symbol_bottom/$name.png") 12 21 8
 }
 
 Write-Output "Generated aligned crest, left, right, and bottom coin overlays under $textureRoot"

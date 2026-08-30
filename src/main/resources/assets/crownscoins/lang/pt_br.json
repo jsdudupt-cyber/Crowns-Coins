@@ -45,7 +45,7 @@
   "gui.crownscoins.panel_gold": "OURO — 25",
   "gui.crownscoins.select_symbols": "Escolha %s símbolos do mesmo metal",
   "gui.crownscoins.central_crest": "BRASÃO CENTRAL — %s",
-  "gui.crownscoins.coin_formula": "Brasão do reino (obrigatório) + 2 símbolos à escolha",
+  "gui.crownscoins.coin_formula": "Coroa padrão (fixa) + 2 símbolos à escolha",
   "gui.crownscoins.preview": "PRÉVIA",
   "gui.crownscoins.material_slot": "LINGOTE",
   "gui.crownscoins.player_inventory": "INVENTÁRIO DO JOGADOR",

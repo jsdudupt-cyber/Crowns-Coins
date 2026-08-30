@@ -45,7 +45,7 @@
   "gui.crownscoins.panel_gold": "GOLD — 25",
   "gui.crownscoins.select_symbols": "Choose %s symbols from one metal",
   "gui.crownscoins.central_crest": "CENTRAL CREST — %s",
-  "gui.crownscoins.coin_formula": "Kingdom crest (required) + 2 symbols of your choice",
+  "gui.crownscoins.coin_formula": "Fixed Crown + 2 symbols of your choice",
   "gui.crownscoins.preview": "PREVIEW",
   "gui.crownscoins.material_slot": "INGOT",
   "gui.crownscoins.player_inventory": "PLAYER INVENTORY",
