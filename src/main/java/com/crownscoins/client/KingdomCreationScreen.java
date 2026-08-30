@@ -6,6 +6,7 @@ import com.crownscoins.menu.KingdomCreationMenu;
 import com.crownscoins.network.CreateKingdomPayload;
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -137,6 +138,35 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
         ));
         this.createButton.active = false;
         this.status = gui("creation_sent");
+    }
+
+    /**
+     * Keep game key bindings from running while either text field is focused.
+     * In particular, typing E must add the letter rather than close this menu
+     * through Minecraft's inventory binding.
+     */
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        EditBox focusedField = focusedTextField();
+        if (focusedField != null) {
+            if (focusedField.keyPressed(event)) {
+                return true;
+            }
+            if (!event.isEscape()) {
+                return true;
+            }
+        }
+        return super.keyPressed(event);
+    }
+
+    private EditBox focusedTextField() {
+        if (this.kingdomName != null && this.kingdomName.isFocused()) {
+            return this.kingdomName;
+        }
+        if (this.currencyName != null && this.currencyName.isFocused()) {
+            return this.currencyName;
+        }
+        return null;
     }
 
     @Override

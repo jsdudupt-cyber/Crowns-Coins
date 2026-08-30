@@ -10,10 +10,10 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 
 /**
- * Client intent to mint one coin at the Mint House represented by the currently open server menu.
+ * Client intent to mint the matching ingot stack at the Mint House represented by the currently open server menu.
  *
  * <p>The client supplies only a metal id, a visual style id, and catalog symbol ids. It never supplies
- * an ItemStack, a kingdom id, a Mint House position, or any currency metadata.</p>
+ * an ItemStack, a quantity, a kingdom id, a Mint House position, or any currency metadata.</p>
  */
 public record MintCoinPayload(int containerId, int metalId, int styleId, List<Integer> symbolIds) implements CustomPacketPayload {
     public static final int MAX_SYMBOLS = CoinData.REQUIRED_SECONDARY_SYMBOLS;

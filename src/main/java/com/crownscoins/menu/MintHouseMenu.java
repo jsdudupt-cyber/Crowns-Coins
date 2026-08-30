@@ -110,7 +110,17 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
 
     /** Returns whether the visible input slot contains the matching metal ingot. */
     public boolean hasMaterialFor(Kingdom.Metal metal) {
-        return this.materialSlot.getItem(MATERIAL_SLOT).is(ingotFor(metal));
+        return materialCountFor(metal) > 0;
+    }
+
+    /**
+     * Returns the complete matching stack in the mint socket. The client uses
+     * this only to describe the action; the server recalculates it immediately
+     * before minting so a packet can never choose its own output quantity.
+     */
+    public int materialCountFor(Kingdom.Metal metal) {
+        ItemStack stack = this.materialSlot.getItem(MATERIAL_SLOT);
+        return stack.is(ingotFor(metal)) ? stack.getCount() : 0;
     }
 
     /** Moves shift-clicked stacks between the ingredient slot and the real player inventory. */
@@ -193,7 +203,11 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         player.sendSystemMessage(Component.translatable("message.crownscoins.currency_name_saved", updated.get().currencyName()));
     }
 
-    /** Mints exactly one server-authenticated coin after all live checks pass. */
+    /**
+     * Mints one coin for every matching ingot in the temporary socket after all
+     * live checks pass. Players can split a stack first when they want fewer
+     * coins; the server always derives the quantity from its own live slot.
+     */
     @Override
     public void handleMintCoinRequest(ServerPlayer player, MintCoinPayload payload) {
         if (payload.containerId() != this.containerId || !isMintCoinRequestValid(player)) {
@@ -208,23 +222,37 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         }
 
         MintRequest validated = request.get();
+        int quantity = materialCountFor(validated.metal());
+        if (quantity <= 0) {
+            player.sendSystemMessage(Component.translatable("message.crownscoins.missing_ingot"));
+            return;
+        }
+
         final ItemStack coin;
         try {
-            coin = createCoin(validated);
+            coin = createCoin(validated, quantity);
         } catch (IllegalArgumentException ignored) {
             player.sendSystemMessage(Component.translatable("message.crownscoins.mint_rejected"));
             return;
         }
 
-        if (!consumeInputIngot(validated.metal())) {
+        if (!consumeInputIngots(validated.metal(), quantity)) {
             player.sendSystemMessage(Component.translatable("message.crownscoins.missing_ingot"));
             return;
         }
 
-        if (!player.getInventory().add(coin)) {
+        // Inventory#add may accept only part of a stack. It mutates the given
+        // stack into the remainder, so drop that remainder rather than relying
+        // on its boolean return value and silently losing minted coins.
+        player.getInventory().add(coin);
+        if (!coin.isEmpty()) {
             player.drop(coin, false);
         }
-        player.sendSystemMessage(Component.translatable("message.crownscoins.coin_minted", validated.kingdom().currencyName()));
+        player.sendSystemMessage(Component.translatable(
+            "message.crownscoins.coin_minted",
+            quantity,
+            validated.kingdom().currencyName()
+        ));
     }
 
     /**
@@ -287,7 +315,10 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         return Optional.of(new MintRequest(kingdom.get(), metal.get(), styleId, List.copyOf(symbols)));
     }
 
-    private static ItemStack createCoin(MintRequest request) {
+    private static ItemStack createCoin(MintRequest request, int quantity) {
+        if (quantity < 1) {
+            throw new IllegalArgumentException("Mint quantity must be positive");
+        }
         Kingdom kingdom = request.kingdom();
         ItemStack coin = new ItemStack(switch (request.metal()) {
             case IRON -> CrownsCoins.IRON_COIN.get();
@@ -319,6 +350,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             List.of()
         ));
         coin.set(DataComponents.CUSTOM_NAME, Component.literal(kingdom.currencyName()));
+        coin.setCount(quantity);
         return coin;
     }
 
@@ -328,12 +360,12 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         this.clearContainer(player, this.materialSlot);
     }
 
-    private boolean consumeInputIngot(Kingdom.Metal metal) {
+    private boolean consumeInputIngots(Kingdom.Metal metal, int quantity) {
         ItemStack stack = this.materialSlot.getItem(MATERIAL_SLOT);
-        if (!stack.is(ingotFor(metal))) {
+        if (quantity < 1 || !stack.is(ingotFor(metal)) || stack.getCount() < quantity) {
             return false;
         }
-        stack.shrink(1);
+        stack.shrink(quantity);
         if (stack.isEmpty()) {
             this.materialSlot.setItem(MATERIAL_SLOT, ItemStack.EMPTY);
         } else {

@@ -80,57 +80,46 @@ $metals = @(
     [pscustomobject]@{ Name = 'iron';   Base = 'iron_04_crown.png';   SymbolTint = [System.Drawing.Color]::FromArgb(255, 222, 229, 235) },
     [pscustomobject]@{ Name = 'gold';   Base = 'gold_04_crown.png';   SymbolTint = [System.Drawing.Color]::FromArgb(255, 255, 220, 67) }
 )
-$crownTint = [System.Drawing.Color]::FromArgb(255, 255, 215, 72)
-$shadowTint = [System.Drawing.Color]::FromArgb(255, 55, 38, 20)
-
 [void][System.IO.Directory]::CreateDirectory($outputRoot)
 
 foreach ($metal in $metals) {
     $basePath = Join-Path $coinRoot $metal.Base
     $base = [System.Drawing.Bitmap]::new($basePath)
-    $crownSource = [System.Drawing.Bitmap]::new((Join-Path $overlayRoot 'crest/04_crown.png'))
-    $crown = New-TintedBitmap $crownSource $crownTint
-    $crownShadow = New-TintedBitmap $crownSource $shadowTint
+    # Catalogue coins deliberately use the same fully positioned overlays as
+    # the item itself. A player can now recognise the big fixed Crown and the
+    # one candidate side mark before clicking a tile.
+    $crown = [System.Drawing.Bitmap]::new((Join-Path $overlayRoot 'crest_center/04_crown.png'))
     try {
         foreach ($index in 0..($symbolNames.Count - 1)) {
             $name = ('{0:D2}_{1}' -f ($index + 1), $symbolNames[$index])
-            $symbolSource = [System.Drawing.Bitmap]::new((Join-Path $overlayRoot "symbol/$name.png"))
-            $symbol = New-TintedBitmap $symbolSource $metal.SymbolTint
-            $symbolShadow = New-TintedBitmap $symbolSource $shadowTint
+            $symbol = [System.Drawing.Bitmap]::new((Join-Path $overlayRoot "symbol_left/$name.png"))
             $target = [System.Drawing.Bitmap]::new(32, 32, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
             $graphics = [System.Drawing.Graphics]::FromImage($target)
             try {
                 $graphics.Clear([System.Drawing.Color]::Transparent)
                 $graphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceCopy
                 $graphics.DrawImageUnscaled($base, 0, 0)
-                # SourceOver is essential: transparent pixels in an overlay must not erase the coin below.
+                # SourceOver is essential: transparent pixels in an overlay
+                # must not erase the coin below.
                 $graphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceOver
                 $graphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighSpeed
                 $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::NearestNeighbor
                 $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::Half
 
-                # The catalogue reads as a finished miniature: small fixed Crown in the centre,
-                # with the selectable symbol clearly visible to its left.
-                Draw-NormalizedSymbol $graphics $symbolShadow 4 13 8
-                Draw-NormalizedSymbol $graphics $symbol 3 12 8
-                Draw-NormalizedSymbol $graphics $crownShadow 14 13 7
-                Draw-NormalizedSymbol $graphics $crown 13 12 7
+                $graphics.DrawImageUnscaled($crown, 0, 0)
+                $graphics.DrawImageUnscaled($symbol, 0, 0)
 
                 $target.Save((Join-Path $outputRoot ("{0}_{1}.png" -f $metal.Name, $name)), [System.Drawing.Imaging.ImageFormat]::Png)
             } finally {
                 $graphics.Dispose()
                 $target.Dispose()
-                $symbolShadow.Dispose()
                 $symbol.Dispose()
-                $symbolSource.Dispose()
             }
         }
     } finally {
-        $crownShadow.Dispose()
         $crown.Dispose()
-        $crownSource.Dispose()
         $base.Dispose()
     }
 }
 
-Write-Output "Generated 75 complete crown-and-symbol catalogue coin textures under $outputRoot"
+Write-Output "Generated 75 readable Crown-and-symbol catalogue coin textures under $outputRoot"

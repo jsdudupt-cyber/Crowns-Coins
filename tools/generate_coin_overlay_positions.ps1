@@ -8,77 +8,130 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 
-$symbolNames = @(
+# These are deliberately bold, native-pixel emblems. The old workflow shrank
+# a detailed 24 px drawing into an 8 px space, so most choices became a blur
+# at the size of a Minecraft item. Seven pixels leaves enough room for the
+# fixed crown and two genuinely readable secondary marks on one coin.
+$SymbolNames = @(
     'sun', 'moon', 'star', 'crown', 'sword', 'shield', 'tower', 'dragon', 'wolf', 'eagle',
     'lion', 'horse', 'hammer', 'anvil', 'heart', 'flame', 'wave', 'leaf', 'flower', 'diamond',
     'mountain', 'river', 'cross', 'lightning', 'compass'
 )
-$textureRoot = Join-Path $ResourceRoot 'assets/crownscoins/textures/item/overlay'
 
-function Get-VisibleBounds([System.Drawing.Bitmap]$Bitmap) {
-    $left = $Bitmap.Width
-    $top = $Bitmap.Height
-    $right = -1
-    $bottom = -1
-    for ($x = 0; $x -lt $Bitmap.Width; $x++) {
-        for ($y = 0; $y -lt $Bitmap.Height; $y++) {
-            if ($Bitmap.GetPixel($x, $y).A -gt 0) {
-                $left = [Math]::Min($left, $x)
-                $top = [Math]::Min($top, $y)
-                $right = [Math]::Max($right, $x)
-                $bottom = [Math]::Max($bottom, $y)
-            }
-        }
-    }
-    if ($right -lt $left -or $bottom -lt $top) {
-        return [System.Drawing.Rectangle]::Empty
-    }
-    return [System.Drawing.Rectangle]::FromLTRB($left, $top, $right + 1, $bottom + 1)
+$SidePatterns = @{
+    sun       = @('.##.##.', '#.###.#', '#######', '.#####.', '#######', '#.###.#', '.##.##.')
+    moon      = @('..####.', '.##....', '.##....', '.##....', '.##....', '.##....', '..####.')
+    star      = @('...#...', '.#####.', '..###..', '#######', '..###..', '.#####.', '...#...')
+    crown     = @('#.#.#.#', '#######', '.#####.', '.#####.', '#######', '.......', '.......')
+    sword     = @('...#...', '...#...', '...#...', '#######', '...#...', '..###..', '.#####.')
+    shield    = @('.#####.', '##...##', '##...##', '.#####.', '.#####.', '..###..', '...#...')
+    tower     = @('##.#.##', '#######', '..###..', '..###..', '..###..', '..###..', '#######')
+    dragon    = @('...##..', '..####.', '.##.###', '...####', '..##.##', '.##...#', '##.....')
+    wolf      = @('#.....#', '##...##', '.##.##.', '..###..', '..###..', '..#.#..', '.#...#.')
+    eagle     = @('#.....#', '##...##', '###.###', '.#####.', '..###..', '...#...', '..#.#..')
+    lion      = @('.#####.', '##.#.##', '##...##', '.#####.', '..###..', '.##.##.', '#######')
+    horse     = @('..###..', '.#####.', '##.##..', '.#####.', '..##.##', '..##..#', '.##....')
+    hammer    = @('.#####.', '.#####.', '...#...', '...#...', '...#...', '...#...', '..###..')
+    anvil     = @('#######', '.#####.', '...#...', '..###..', '.#####.', '...#...', '..###..')
+    heart     = @('.##.##.', '#######', '#######', '.#####.', '..###..', '...#...', '.......')
+    flame     = @('...#...', '..###..', '.#####.', '######.', '.#####.', '..###..', '...#...')
+    wave      = @('.......', '.##..##', '##.##.#', '.##.##.', '..##...', '.......', '.......')
+    leaf      = @('....#..', '...###.', '..#####', '.######', '..#####', '...###.', '....#..')
+    flower    = @('...#...', '.##.##.', '..###..', '#######', '..###..', '.##.##.', '...#...')
+    diamond   = @('...#...', '..###..', '.#####.', '#######', '.#####.', '..###..', '...#...')
+    mountain  = @('...#...', '..###..', '.#####.', '#######', '.##.##.', '.##.##.', '.......')
+    river     = @('##.....', '.##....', '..##...', '...##..', '..##...', '.##....', '##.....')
+    cross     = @('...#...', '...#...', '.#####.', '.#####.', '...#...', '...#...', '...#...')
+    lightning = @('....###', '...##..', '..##...', '.#####.', '....##.', '...##..', '.###...')
+    compass   = @('...#...', '..###..', '##.#.##', '.#####.', '##.#.##', '..###..', '...#...')
 }
 
-function Write-PositionedOverlay([string]$SourcePath, [string]$TargetPath, [int]$X, [int]$Y, [int]$Size) {
-    $source = [System.Drawing.Bitmap]::new($SourcePath)
+# A twelve-pixel crown gives the permanent kingdom mark priority over the two
+# seven-pixel choices, while still leaving the side marks inside the rim.
+$CenterCrownPattern = @(
+    '#..#..#..#..',
+    '##.#.##.#.##',
+    '.##########.',
+    '.##########.',
+    '.##########.',
+    '..########..',
+    '...######...',
+    '....####....'
+)
+
+$textureRoot = Join-Path $ResourceRoot 'assets/crownscoins/textures/item/overlay'
+$outlineColor = [System.Drawing.Color]::FromArgb(255, 54, 26, 10)
+$sideColor = [System.Drawing.Color]::FromArgb(255, 255, 244, 210)
+$crownColor = [System.Drawing.Color]::FromArgb(255, 255, 220, 92)
+
+function Assert-Pattern([string]$Name, [string[]]$Pattern, [int]$Width, [int]$Height) {
+    if ($Pattern.Count -ne $Height -or @($Pattern | Where-Object { $_.Length -ne $Width }).Count -gt 0) {
+        throw "Pattern '$Name' must be $Width by $Height pixels."
+    }
+}
+
+function Write-PixelOverlay(
+    [string[]]$Pattern,
+    [string]$TargetPath,
+    [int]$OriginX,
+    [int]$OriginY,
+    [System.Drawing.Color]$Color
+) {
     $target = [System.Drawing.Bitmap]::new(32, 32, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
-    $graphics = [System.Drawing.Graphics]::FromImage($target)
     try {
-        $bounds = Get-VisibleBounds $source
-        $graphics.Clear([System.Drawing.Color]::Transparent)
-        $graphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceCopy
-        $graphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighSpeed
-        $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::NearestNeighbor
-        $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::Half
-        if (!$bounds.IsEmpty) {
-            $scale = [Math]::Min($Size / $bounds.Width, $Size / $bounds.Height)
-            $width = [Math]::Max(1, [int][Math]::Round($bounds.Width * $scale))
-            $height = [Math]::Max(1, [int][Math]::Round($bounds.Height * $scale))
-            $destination = [System.Drawing.Rectangle]::new(
-                $X + [int](($Size - $width) / 2),
-                $Y + [int](($Size - $height) / 2),
-                $width,
-                $height
-            )
-            $graphics.DrawImage($source, $destination, $bounds, [System.Drawing.GraphicsUnit]::Pixel)
+        # First draw a one-pixel dark contour. It keeps pale emblems readable
+        # on copper, iron, and gold without adding tiny decorative noise.
+        for ($row = 0; $row -lt $Pattern.Count; $row++) {
+            for ($column = 0; $column -lt $Pattern[$row].Length; $column++) {
+                if ($Pattern[$row][$column] -ne '#') {
+                    continue
+                }
+                for ($offsetY = -1; $offsetY -le 1; $offsetY++) {
+                    for ($offsetX = -1; $offsetX -le 1; $offsetX++) {
+                        $x = $OriginX + $column + $offsetX
+                        $y = $OriginY + $row + $offsetY
+                        if ($x -ge 0 -and $x -lt 32 -and $y -ge 0 -and $y -lt 32) {
+                            $target.SetPixel($x, $y, $outlineColor)
+                        }
+                    }
+                }
+            }
+        }
+        # The opaque face is intentionally simple: each mark survives both the
+        # inventory scale and the large minting preview.
+        for ($row = 0; $row -lt $Pattern.Count; $row++) {
+            for ($column = 0; $column -lt $Pattern[$row].Length; $column++) {
+                if ($Pattern[$row][$column] -eq '#') {
+                    $target.SetPixel($OriginX + $column, $OriginY + $row, $Color)
+                }
+            }
         }
         [void][System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($TargetPath))
         $target.Save($TargetPath, [System.Drawing.Imaging.ImageFormat]::Png)
     } finally {
-        $graphics.Dispose()
         $target.Dispose()
-        $source.Dispose()
     }
 }
 
-foreach ($index in 0..($symbolNames.Count - 1)) {
-    $name = ('{0:D2}_{1}' -f ($index + 1), $symbolNames[$index])
-    $symbolSource = Join-Path $textureRoot "symbol/$name.png"
-    $crestSource = Join-Path $textureRoot "crest/$name.png"
-    # The Crown is fixed in the middle and deliberately a little smaller than
-    # the two selectable side symbols, so the three marks remain distinct.
-    Write-PositionedOverlay $crestSource (Join-Path $textureRoot "crest_center/$name.png") 13 12 7
-    Write-PositionedOverlay $symbolSource (Join-Path $textureRoot "symbol_left/$name.png") 3 12 8
-    Write-PositionedOverlay $symbolSource (Join-Path $textureRoot "symbol_right/$name.png") 21 12 8
-    # Retain the old lower position only for historic three-symbol coins.
-    Write-PositionedOverlay $symbolSource (Join-Path $textureRoot "symbol_bottom/$name.png") 12 21 8
+foreach ($name in $SymbolNames) {
+    $pattern = [string[]]$SidePatterns[$name]
+    Assert-Pattern $name $pattern 7 7
+    $id = $SymbolNames.IndexOf($name) + 1
+    $fileName = ('{0:D2}_{1}.png' -f $id, $name)
+
+    # The fixed crest only needs the crown today, but keeping the remaining
+    # generated files valid avoids breaking legacy stacks and UI lookups.
+    if ($name -eq 'crown') {
+        Assert-Pattern 'center crown' $CenterCrownPattern 12 8
+        Write-PixelOverlay $CenterCrownPattern (Join-Path $textureRoot "crest_center/$fileName") 10 11 $crownColor
+    } else {
+        Write-PixelOverlay $pattern (Join-Path $textureRoot "crest_center/$fileName") 13 13 $crownColor
+    }
+
+    Write-PixelOverlay $pattern (Join-Path $textureRoot "symbol_left/$fileName") 2 13 $sideColor
+    Write-PixelOverlay $pattern (Join-Path $textureRoot "symbol_right/$fileName") 23 13 $sideColor
+    # Kept only for legacy coins that used a lower third symbol.
+    Write-PixelOverlay $pattern (Join-Path $textureRoot "symbol_bottom/$fileName") 13 22 $sideColor
 }
 
-Write-Output "Generated aligned crest, left, right, and bottom coin overlays under $textureRoot"
+Write-Output "Generated high-contrast Crown and secondary-symbol overlays under $textureRoot"

@@ -11,6 +11,7 @@ import com.crownscoins.network.UpdateCurrencyNamePayload;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -163,9 +164,17 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
 
     private void refreshSelectionState() {
         if (this.confirmButton != null) {
+            int quantity = this.menu.materialCountFor(this.selectedMetal);
             this.confirmButton.active = this.selectedSymbols.size() == CoinData.REQUIRED_SECONDARY_SYMBOLS
                 && KingdomCrest.isSupported(this.display.crest())
-                && this.menu.hasMaterialFor(this.selectedMetal);
+                && quantity > 0;
+            if (quantity > 0) {
+                this.confirmButton.setMessage(gui("mint_stack", quantity));
+                this.confirmButton.setTooltip(Tooltip.create(gui("mint_stack_tooltip", quantity)));
+            } else {
+                this.confirmButton.setMessage(gui("confirm"));
+                this.confirmButton.setTooltip(Tooltip.create(gui("mint_stack_empty")));
+            }
         }
     }
 
@@ -198,6 +207,10 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         }
         if (this.currencyNameField != null) {
             this.currencyNameField.visible = open;
+            // When the tab opens, immediately capture keyboard input for the
+            // name field. This prevents game bindings such as E (inventory)
+            // from acting while a player is typing a currency name.
+            this.setFocused(open ? this.currencyNameField : null);
         }
         if (this.saveCurrencyButton != null) {
             this.saveCurrencyButton.visible = open;
@@ -228,7 +241,8 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
             this.status = gui("select_two_symbols");
             return;
         }
-        if (!this.menu.hasMaterialFor(this.selectedMetal)) {
+        int quantity = this.menu.materialCountFor(this.selectedMetal);
+        if (quantity <= 0) {
             this.status = gui("insert_matching_ingot", metalName(this.selectedMetal));
             return;
         }
@@ -238,7 +252,28 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
             previewStyleId(),
             this.selectedSymbols.stream().map(Symbol::id).toList()
         ));
-        this.status = gui("mint_sent");
+        this.status = gui("mint_sent", quantity);
+    }
+
+    /**
+     * AbstractContainerScreen handles the inventory key after its widgets. An
+     * EditBox returns false for ordinary printable keys, so without this guard
+     * the inventory binding (normally E) closes the currency form before the
+     * corresponding character reaches charTyped().
+     */
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        if (this.currencyTabOpen
+            && this.currencyNameField != null
+            && this.currencyNameField.isFocused()) {
+            if (this.currencyNameField.keyPressed(event)) {
+                return true;
+            }
+            if (!event.isEscape()) {
+                return true;
+            }
+        }
+        return super.keyPressed(event);
     }
 
     @Override
@@ -307,14 +342,17 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
 
     private void renderCatalogTiles(GuiGraphicsExtractor graphics) {
         for (CatalogTile tile : this.catalogTiles) {
-            // Each tile is a readable miniature: the crown is the fixed centre
-            // of the coin and this tile's symbol is shown beside it.
+            // The earlier miniature coins attempted to show a crown plus a
+            // symbol in a 20px tile.  That made the actual choice impossible
+            // to recognise.  The catalogue is a chooser, so give its symbol
+            // the whole tile; the completed crown-and-two-symbol coin remains
+            // visible in the dedicated preview below.
             graphics.fill(tile.x(), tile.y(), tile.x() + TILE_WIDTH, tile.y() + TILE_HEIGHT, 0xFF171515);
             graphics.blit(
                 RenderPipelines.GUI_TEXTURED,
-                catalogCoinTexture(tile.metal(), tile.symbol()),
+                symbolTexture(tile.symbol()),
                 tile.x() + 2,
-                tile.y(),
+                tile.y() + 1,
                 0.0F,
                 0.0F,
                 20,
