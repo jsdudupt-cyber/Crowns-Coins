@@ -1,6 +1,7 @@
 ### Gradle ###
 .gradle
 .gradle-agent/
+.gradle-user/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/**/build/
@@ -39,3 +40,4 @@ run/
 **/src/generated/**/.cache/
 repo/
 !**/src/**/repo/
+work/
