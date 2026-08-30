@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "crownscoins:block/mint_house_side",
+    "down": "crownscoins:block/mint_house_bottom",
+    "up": "crownscoins:block/mint_house_top",
+    "north": "crownscoins:block/mint_house_front",
+    "south": "crownscoins:block/mint_house_back",
+    "east": "crownscoins:block/mint_house_side",
+    "west": "crownscoins:block/mint_house_side"
+  }
+}

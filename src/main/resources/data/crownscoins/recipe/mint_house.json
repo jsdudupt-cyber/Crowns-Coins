@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["ICI", "CTC", "IGI"],
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "C": "minecraft:copper_ingot",
+    "T": "minecraft:crafting_table",
+    "G": "minecraft:gold_ingot"
+  },
+  "result": { "id": "crownscoins:mint_house", "count": 1 }
+}

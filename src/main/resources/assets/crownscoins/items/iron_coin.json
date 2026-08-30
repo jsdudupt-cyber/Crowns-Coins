@@ -1,0 +1,6 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "crownscoins:item/iron_coin"
+  }
+}
