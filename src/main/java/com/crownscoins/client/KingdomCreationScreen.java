@@ -2,7 +2,6 @@ package com.crownscoins.client;
 
 import com.crownscoins.kingdom.Kingdom;
 import com.crownscoins.kingdom.KingdomCrest;
-import com.crownscoins.kingdom.Symbol;
 import com.crownscoins.menu.KingdomCreationMenu;
 import com.crownscoins.network.CreateKingdomPayload;
 import java.util.ArrayList;
@@ -24,16 +23,13 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 public final class KingdomCreationScreen extends AbstractContainerScreen<KingdomCreationMenu> {
     private static final int FIELD_WIDTH = 190;
     private static final int FIELD_HEIGHT = 20;
-    private static final int SCREEN_HEIGHT = 380;
+    private static final int SCREEN_HEIGHT = 330;
 
     private EditBox kingdomName;
     private EditBox currencyName;
-    private EditBox ironValue;
-    private EditBox copperValue;
-    private EditBox goldValue;
     private final List<Button> crestButtons = new ArrayList<>();
     private Button createButton;
-    private KingdomCrest selectedCrest = KingdomCrest.CROWNED_LION;
+    private KingdomCrest selectedCrest = KingdomCrest.ROYAL_CROWN;
     private Component status = Component.empty();
 
     public KingdomCreationScreen(KingdomCreationMenu menu, Inventory inventory, Component title) {
@@ -58,13 +54,9 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
         this.currencyName.setHint(currencyNameLabel);
         this.currencyName.setResponder(value -> this.refreshCreateButton());
 
-        this.ironValue = this.addRenderableWidget(numberField(left, top + 98, "iron_value", "1"));
-        this.copperValue = this.addRenderableWidget(numberField(left, top + 138, "copper_value", "1"));
-        this.goldValue = this.addRenderableWidget(numberField(left, top + 178, "gold_value", "1"));
-
         this.crestButtons.clear();
         KingdomCrest[] crests = KingdomCrest.values();
-        int crestTop = top + 218;
+        int crestTop = top + 150;
         for (int index = 0; index < crests.length; index++) {
             KingdomCrest crest = crests[index];
             int x = left + (index % 5) * 38;
@@ -77,23 +69,13 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
         this.refreshCrestButtons();
 
         this.createButton = this.addRenderableWidget(Button.builder(gui("create_kingdom"), button -> submit())
-            .bounds(left, top + 332, 92, 20)
+            .bounds(left, top + 282, 92, 20)
             .build());
         this.addRenderableWidget(Button.builder(gui("cancel"), button -> this.onClose())
-            .bounds(left + 98, top + 332, 92, 20)
+            .bounds(left + 98, top + 282, 92, 20)
             .build());
         this.refreshCreateButton();
         this.setInitialFocus(this.kingdomName);
-    }
-
-    private EditBox numberField(int x, int y, String translationKey, String initialValue) {
-        Component label = gui(translationKey);
-        EditBox field = new EditBox(this.font, x, y, FIELD_WIDTH, FIELD_HEIGHT, label);
-        field.setMaxLength(7);
-        field.setValue(initialValue);
-        field.setHint(label);
-        field.setResponder(value -> this.refreshCreateButton());
-        return field;
     }
 
     private void selectCrest(KingdomCrest crest) {
@@ -119,10 +101,7 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
 
     private boolean isLocallyValid() {
         return validLength(this.kingdomName, Kingdom.MIN_KINGDOM_NAME_LENGTH, Kingdom.MAX_KINGDOM_NAME_LENGTH)
-            && validLength(this.currencyName, Kingdom.MIN_CURRENCY_NAME_LENGTH, Kingdom.MAX_CURRENCY_NAME_LENGTH)
-            && validCoinValue(this.ironValue)
-            && validCoinValue(this.copperValue)
-            && validCoinValue(this.goldValue);
+            && validLength(this.currencyName, Kingdom.MIN_CURRENCY_NAME_LENGTH, Kingdom.MAX_CURRENCY_NAME_LENGTH);
     }
 
     private static boolean validLength(EditBox field, int minimum, int maximum) {
@@ -131,18 +110,6 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
         }
         int length = field.getValue().strip().codePointCount(0, field.getValue().strip().length());
         return length >= minimum && length <= maximum;
-    }
-
-    private static boolean validCoinValue(EditBox field) {
-        if (field == null || field.getValue().isEmpty()) {
-            return false;
-        }
-        try {
-            int value = Integer.parseInt(field.getValue());
-            return value >= Kingdom.MIN_COIN_VALUE && value <= Kingdom.MAX_COIN_VALUE;
-        } catch (NumberFormatException ignored) {
-            return false;
-        }
     }
 
     private void submit() {
@@ -155,9 +122,9 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
             this.kingdomName.getValue().strip(),
             this.currencyName.getValue().strip(),
             this.selectedCrest,
-            Integer.parseInt(this.ironValue.getValue()),
-            Integer.parseInt(this.copperValue.getValue()),
-            Integer.parseInt(this.goldValue.getValue())
+            Kingdom.IRON_COIN_VALUE,
+            Kingdom.COPPER_COIN_VALUE,
+            Kingdom.GOLD_COIN_VALUE
         );
         ClientPacketDistributor.sendToServer(new CreateKingdomPayload(
             this.menu.containerId,
@@ -181,8 +148,10 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
 
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         graphics.centeredText(this.font, this.title, this.width / 2, top + 8, 0xFFFFD878);
-        graphics.centeredText(this.font, gui("choose_crest"), this.width / 2, top + 202, 0xFFB8B8B8);
-        graphics.centeredText(this.font, this.status, this.width / 2, top + 360, 0xFFFFD878);
+        graphics.centeredText(this.font, gui("economy_fixed"), this.width / 2, top + 91, 0xFFFFD878);
+        graphics.centeredText(this.font, gui("economy_example"), this.width / 2, top + 106, 0xFFCED2D4);
+        graphics.centeredText(this.font, gui("choose_crest"), this.width / 2, top + 134, 0xFFB8B8B8);
+        graphics.centeredText(this.font, this.status, this.width / 2, top + 310, 0xFFFFD878);
     }
 
     @Override

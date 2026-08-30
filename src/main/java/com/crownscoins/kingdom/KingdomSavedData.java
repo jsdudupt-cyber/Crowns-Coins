@@ -49,17 +49,21 @@ public final class KingdomSavedData extends SavedData {
 
     private KingdomSavedData(List<Kingdom> kingdoms) {
         Objects.requireNonNull(kingdoms, "kingdoms");
-        boolean migratedLegacyCrest = false;
+        boolean migratedLegacyData = false;
         for (Kingdom kingdom : kingdoms) {
             Kingdom existing = Objects.requireNonNull(kingdom, "kingdom");
             Symbol normalizedCrest = KingdomCrest.normalizeLegacy(existing.crest());
             if (normalizedCrest != existing.crest()) {
                 existing = existing.withCrest(normalizedCrest);
-                migratedLegacyCrest = true;
+                migratedLegacyData = true;
+            }
+            if (!existing.hasStandardEconomy()) {
+                existing = existing.withStandardEconomy();
+                migratedLegacyData = true;
             }
             indexExisting(existing);
         }
-        if (migratedLegacyCrest) {
+        if (migratedLegacyData) {
             setDirty();
         }
     }
@@ -127,6 +131,29 @@ public final class KingdomSavedData extends SavedData {
         indexExisting(kingdom);
         setDirty();
         return kingdom;
+    }
+
+    /**
+     * Replaces only a kingdom's currency display name. The caller must be the
+     * founder; values, crest, members, and the kingdom identity remain intact.
+     */
+    public Optional<Kingdom> updateCurrencyName(UUID kingdomId, UUID requesterId, String currencyName) {
+        Objects.requireNonNull(kingdomId, "kingdomId");
+        Objects.requireNonNull(requesterId, "requesterId");
+        Kingdom current = kingdomsById.get(kingdomId);
+        if (current == null || !current.isFounder(requesterId)) {
+            return Optional.empty();
+        }
+
+        final Kingdom replacement;
+        try {
+            replacement = current.withCurrencyName(currencyName);
+        } catch (IllegalArgumentException | NullPointerException ignored) {
+            return Optional.empty();
+        }
+        kingdomsById.put(kingdomId, replacement);
+        setDirty();
+        return Optional.of(replacement);
     }
 
     /**

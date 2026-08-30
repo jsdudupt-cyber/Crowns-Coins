@@ -22,6 +22,12 @@ public final class Kingdom {
     public static final int MAX_CURRENCY_NAME_LENGTH = 24;
     public static final int MIN_COIN_VALUE = 1;
     public static final int MAX_COIN_VALUE = 1_000_000;
+    /** One bronze coin is the base unit used by every kingdom. */
+    public static final int COPPER_COIN_VALUE = 1;
+    /** Ten bronze coins have the economic value of one iron coin. */
+    public static final int IRON_COIN_VALUE = 10;
+    /** Fifteen iron coins have the economic value of one gold coin. */
+    public static final int GOLD_COIN_VALUE = 150;
 
     /**
      * The serialized form deliberately contains only primitive, server-verifiable data.
@@ -211,6 +217,18 @@ public final class Kingdom {
         };
     }
 
+    /** Returns whether this kingdom follows the shared Crown & Coins denomination. */
+    public boolean hasStandardEconomy() {
+        return isStandardEconomy(this.ironValue, this.copperValue, this.goldValue);
+    }
+
+    /** Validates the fixed denomination used for every kingdom currency. */
+    public static boolean isStandardEconomy(int ironValue, int copperValue, int goldValue) {
+        return ironValue == IRON_COIN_VALUE
+            && copperValue == COPPER_COIN_VALUE
+            && goldValue == GOLD_COIN_VALUE;
+    }
+
     /* Package-private: used only while normalizing legacy saved-data crests. */
     Kingdom withCrest(Symbol replacementCrest) {
         return new Kingdom(
@@ -223,6 +241,36 @@ public final class Kingdom {
             this.ironValue,
             this.copperValue,
             this.goldValue
+        );
+    }
+
+    /* Package-private: SavedData owns mutations so it can mark itself dirty. */
+    Kingdom withCurrencyName(String replacementCurrencyName) {
+        return new Kingdom(
+            this.id,
+            this.founder,
+            this.members,
+            this.name,
+            replacementCurrencyName,
+            this.crest,
+            this.ironValue,
+            this.copperValue,
+            this.goldValue
+        );
+    }
+
+    /* Package-private: upgrades legacy saves to the common denomination. */
+    Kingdom withStandardEconomy() {
+        return new Kingdom(
+            this.id,
+            this.founder,
+            this.members,
+            this.name,
+            this.currencyName,
+            this.crest,
+            IRON_COIN_VALUE,
+            COPPER_COIN_VALUE,
+            GOLD_COIN_VALUE
         );
     }
 

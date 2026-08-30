@@ -162,6 +162,9 @@ public final class KingdomCreationMenu extends MintHouseBoundMenu implements Net
         if (kingdoms.hasKingdom(player.getUUID())) {
             return Optional.empty();
         }
+        if (!Kingdom.isStandardEconomy(ironValue, copperValue, goldValue)) {
+            return Optional.empty();
+        }
 
         final Symbol crest;
         try {

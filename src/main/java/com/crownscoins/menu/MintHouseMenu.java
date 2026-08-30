@@ -9,6 +9,7 @@ import com.crownscoins.kingdom.KingdomSavedData;
 import com.crownscoins.kingdom.Symbol;
 import com.crownscoins.network.MintCoinPayload;
 import com.crownscoins.network.NetworkHandler;
+import com.crownscoins.network.UpdateCurrencyNamePayload;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -36,7 +37,9 @@ import net.minecraft.world.level.Level;
  * Server-side state for minting at a bound Mint House. Its payload validator
  * accepts catalog IDs only and never changes a player's inventory.
  */
-public final class MintHouseMenu extends MintHouseBoundMenu implements NetworkHandler.MintCoinRequestHandler {
+public final class MintHouseMenu extends MintHouseBoundMenu implements
+    NetworkHandler.MintCoinRequestHandler,
+    NetworkHandler.CurrencyNameRequestHandler {
     public static final int IRON_METAL_ID = 1;
     public static final int COPPER_METAL_ID = 2;
     public static final int GOLD_METAL_ID = 3;
@@ -66,7 +69,15 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements NetworkHa
             inventory,
             inventory.player.level().dimension(),
             data.readBlockPos(),
-            new ClientMintData(data.readUtf(Kingdom.MAX_KINGDOM_NAME_LENGTH), Symbol.byId(data.readVarInt()), data.readVarInt(), data.readVarInt(), data.readVarInt())
+            new ClientMintData(
+                data.readUtf(Kingdom.MAX_KINGDOM_NAME_LENGTH),
+                data.readUtf(Kingdom.MAX_CURRENCY_NAME_LENGTH),
+                Symbol.byId(data.readVarInt()),
+                data.readBoolean(),
+                data.readVarInt(),
+                data.readVarInt(),
+                data.readVarInt()
+            )
         );
     }
 
@@ -149,6 +160,35 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements NetworkHa
             .flatMap(kingdomId -> KingdomSavedData.get((ServerLevel) player.level()).find(kingdomId))
             .filter(kingdom -> KingdomCrest.isSupported(kingdom.crest()))
             .isPresent();
+    }
+
+    /** Only the founder of the currently bound kingdom may rename its currency. */
+    @Override
+    public boolean isCurrencyNameRequestValid(ServerPlayer player) {
+        return currentMintHouse(player)
+            .flatMap(mintHouse -> mintHouse.kingdomId())
+            .flatMap(kingdomId -> KingdomSavedData.get((ServerLevel) player.level()).find(kingdomId))
+            .filter(kingdom -> kingdom.isFounder(player.getUUID()))
+            .isPresent();
+    }
+
+    /** Updates the currency name through SavedData after rechecking the live menu. */
+    @Override
+    public void handleCurrencyNameRequest(ServerPlayer player, UpdateCurrencyNamePayload payload) {
+        if (payload.containerId() != this.containerId || !isCurrencyNameRequestValid(player)) {
+            player.closeContainer();
+            return;
+        }
+
+        Optional<Kingdom> updated = currentMintHouse(player)
+            .flatMap(MintHouseBlockEntity::kingdomId)
+            .flatMap(kingdomId -> KingdomSavedData.get((ServerLevel) player.level())
+                .updateCurrencyName(kingdomId, player.getUUID(), payload.currencyName()));
+        if (updated.isEmpty()) {
+            player.sendSystemMessage(Component.translatable("message.crownscoins.currency_name_rejected"));
+            return;
+        }
+        player.sendSystemMessage(Component.translatable("message.crownscoins.currency_name_saved", updated.get().currencyName()));
     }
 
     /** Mints exactly one server-authenticated coin after all live checks pass. */
@@ -326,9 +366,25 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements NetworkHa
     }
 
     /** Immutable snapshot written by the server while the menu opens. */
-    public record ClientMintData(String kingdomName, Symbol crest, int ironValue, int copperValue, int goldValue) {
+    public record ClientMintData(
+        String kingdomName,
+        String currencyName,
+        Symbol crest,
+        boolean canEditCurrency,
+        int ironValue,
+        int copperValue,
+        int goldValue
+    ) {
         private static ClientMintData empty() {
-            return new ClientMintData("", Symbol.CROWN, 1, 1, 1);
+            return new ClientMintData(
+                "",
+                "",
+                Symbol.CROWN,
+                false,
+                Kingdom.IRON_COIN_VALUE,
+                Kingdom.COPPER_COIN_VALUE,
+                Kingdom.GOLD_COIN_VALUE
+            );
         }
     }
 }

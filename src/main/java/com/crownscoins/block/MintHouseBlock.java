@@ -60,7 +60,9 @@ public final class MintHouseBlock extends BaseEntityBlock {
             buffer -> {
                 buffer.writeBlockPos(pos);
                 buffer.writeUtf(boundKingdom.name(), Kingdom.MAX_KINGDOM_NAME_LENGTH);
+                buffer.writeUtf(boundKingdom.currencyName(), Kingdom.MAX_CURRENCY_NAME_LENGTH);
                 buffer.writeVarInt(boundKingdom.crest().id());
+                buffer.writeBoolean(boundKingdom.isFounder(serverPlayer.getUUID()));
                 buffer.writeVarInt(boundKingdom.ironValue());
                 buffer.writeVarInt(boundKingdom.copperValue());
                 buffer.writeVarInt(boundKingdom.goldValue());

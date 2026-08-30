@@ -4,10 +4,11 @@ import java.util.Locale;
 import java.util.Optional;
 
 /**
- * The ten heraldic crests available for the centre of a minted coin.
+ * The heraldic crests available for the centre of a minted coin.
  * Each crest deliberately reuses a symbol that already has a client texture.
  */
 public enum KingdomCrest {
+    ROYAL_CROWN(Symbol.CROWN),
     CROWNED_LION(Symbol.LION),
     DOUBLE_HEADED_EAGLE(Symbol.EAGLE),
     WOLF_HEAD(Symbol.WOLF),
@@ -55,7 +56,7 @@ public enum KingdomCrest {
 
     /**
      * Converts the fifteen early prototype symbols into the nearest one of the
-     * ten permanent heraldic crests. It keeps older development worlds usable
+     * permanent heraldic crests. It keeps older development worlds usable
      * after the crest catalogue was narrowed to the finalized designs.
      */
     public static Symbol normalizeLegacy(Symbol symbol) {

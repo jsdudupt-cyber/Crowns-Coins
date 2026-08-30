@@ -7,7 +7,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 /** Common, dedicated-server-safe registration and dispatch for Crowns & Coins payloads. */
 public final class NetworkHandler {
-    public static final String NETWORK_VERSION = "1";
+    public static final String NETWORK_VERSION = "2";
 
     private NetworkHandler() {}
 
@@ -20,6 +20,7 @@ public final class NetworkHandler {
         PayloadRegistrar registrar = event.registrar(NETWORK_VERSION);
         registrar.playToServer(CreateKingdomPayload.TYPE, CreateKingdomPayload.STREAM_CODEC, NetworkHandler::handleCreateKingdom);
         registrar.playToServer(MintCoinPayload.TYPE, MintCoinPayload.STREAM_CODEC, NetworkHandler::handleMintCoin);
+        registrar.playToServer(UpdateCurrencyNamePayload.TYPE, UpdateCurrencyNamePayload.STREAM_CODEC, NetworkHandler::handleUpdateCurrencyName);
     }
 
     private static void handleCreateKingdom(CreateKingdomPayload payload, IPayloadContext context) {
@@ -52,6 +53,21 @@ public final class NetworkHandler {
         menu.handleMintCoinRequest(player, payload);
     }
 
+    private static void handleUpdateCurrencyName(UpdateCurrencyNamePayload payload, IPayloadContext context) {
+        if (!(context.player() instanceof ServerPlayer player)) {
+            return;
+        }
+        if (!(player.containerMenu instanceof CurrencyNameRequestHandler menu)
+                || player.containerMenu.containerId != payload.containerId()) {
+            return;
+        }
+        if (!menu.isCurrencyNameRequestValid(player)) {
+            player.closeContainer();
+            return;
+        }
+        menu.handleCurrencyNameRequest(player, payload);
+    }
+
     /** Implemented only by the live server-side kingdom-creation menu. */
     public interface KingdomCreationRequestHandler {
         boolean isKingdomCreationRequestValid(ServerPlayer player);
@@ -64,5 +80,12 @@ public final class NetworkHandler {
         boolean isMintCoinRequestValid(ServerPlayer player);
 
         void handleMintCoinRequest(ServerPlayer player, MintCoinPayload payload);
+    }
+
+    /** Implemented only by the live Mint House menu opened by a kingdom founder. */
+    public interface CurrencyNameRequestHandler {
+        boolean isCurrencyNameRequestValid(ServerPlayer player);
+
+        void handleCurrencyNameRequest(ServerPlayer player, UpdateCurrencyNamePayload payload);
     }
 }

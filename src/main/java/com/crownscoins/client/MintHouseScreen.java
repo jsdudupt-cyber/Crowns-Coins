@@ -7,11 +7,13 @@ import com.crownscoins.kingdom.KingdomCrest;
 import com.crownscoins.kingdom.Symbol;
 import com.crownscoins.menu.MintHouseMenu;
 import com.crownscoins.network.MintCoinPayload;
+import com.crownscoins.network.UpdateCurrencyNamePayload;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -28,11 +30,12 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     private static final int SCREEN_WIDTH = 720;
     private static final int SCREEN_HEIGHT = 540;
     private static final int TILE_WIDTH = 22;
-    private static final int TILE_HEIGHT = 17;
+    private static final int TILE_HEIGHT = 16;
     private static final int TILE_GAP_X = 2;
-    private static final int TILE_GAP_Y = 2;
-    private static final int GRID_TOP = 64;
-    private static final int[] GRID_LEFTS = {236, 386, 538};
+    private static final int TILE_GAP_Y = 1;
+    private static final int GRID_TOP = 62;
+    private static final int[] GRID_LEFTS = {235, 393, 550};
+    private static final int[] GRID_CENTERS = {294, 452, 609};
     private static final int PREVIEW_CENTER_X = 134;
     private static final int PREVIEW_CENTER_Y = 236;
     private static final int MATERIAL_CENTER_X = 320;
@@ -46,12 +49,22 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         CrownsCoins.MOD_ID,
         "textures/gui/mint_house_workbench.png"
     );
+    private static final Identifier CURRENCY_TAB_TEXTURE = Identifier.fromNamespaceAndPath(
+        CrownsCoins.MOD_ID,
+        "textures/gui/mint_currency_tab.png"
+    );
 
     private final MintHouseMenu.ClientMintData display;
     private final List<Symbol> selectedSymbols = new ArrayList<>(CoinData.REQUIRED_SECONDARY_SYMBOLS);
     private final List<CatalogTile> catalogTiles = new ArrayList<>();
     private Kingdom.Metal selectedMetal = Kingdom.Metal.COPPER;
     private Button confirmButton;
+    private Button backButton;
+    private Button mintTabButton;
+    private Button currencyTabButton;
+    private Button saveCurrencyButton;
+    private EditBox currencyNameField;
+    private boolean currencyTabOpen;
     private Component status = Component.empty();
 
     public MintHouseScreen(MintHouseMenu menu, Inventory inventory, Component title) {
@@ -86,9 +99,42 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         this.confirmButton = this.addRenderableWidget(Button.builder(gui("confirm"), ignored -> mint())
             .bounds(this.leftPos + 540, this.topPos + 271, 76, 20)
             .build());
-        this.addRenderableWidget(Button.builder(gui("back"), ignored -> this.onClose())
+        this.backButton = this.addRenderableWidget(Button.builder(gui("back"), ignored -> {
+                if (this.currencyTabOpen) {
+                    this.setCurrencyTab(false);
+                } else {
+                    this.onClose();
+                }
+            })
             .bounds(this.leftPos + 456, this.topPos + 271, 76, 20)
             .build());
+        if (this.display.canEditCurrency()) {
+            this.mintTabButton = this.addRenderableWidget(Button.builder(gui("tab_mint"), ignored -> this.setCurrencyTab(false))
+                .bounds(this.leftPos + 500, this.topPos + 8, 62, 16)
+                .build());
+            this.currencyTabButton = this.addRenderableWidget(Button.builder(gui("tab_currency"), ignored -> this.setCurrencyTab(true))
+                .bounds(this.leftPos + 566, this.topPos + 8, 116, 16)
+                .build());
+        }
+
+        Component currencyNameLabel = gui("currency_name");
+        this.currencyNameField = this.addRenderableWidget(new EditBox(
+            this.font,
+            this.leftPos + 335,
+            this.topPos + 178,
+            190,
+            20,
+            currencyNameLabel
+        ));
+        this.currencyNameField.setMaxLength(Kingdom.MAX_CURRENCY_NAME_LENGTH);
+        this.currencyNameField.setHint(currencyNameLabel);
+        this.currencyNameField.setValue(this.display.currencyName());
+        this.currencyNameField.setResponder(ignored -> this.refreshCurrencySaveState());
+        this.saveCurrencyButton = this.addRenderableWidget(Button.builder(gui("save_currency"), ignored -> saveCurrencyName())
+            .bounds(this.leftPos + 531, this.topPos + 212, 96, 20)
+            .build());
+
+        this.setCurrencyTab(false);
         this.refreshSelectionState();
     }
 
@@ -123,6 +169,60 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         }
     }
 
+    private void refreshCurrencySaveState() {
+        if (this.saveCurrencyButton != null) {
+            this.saveCurrencyButton.active = this.display.canEditCurrency()
+                && validCurrencyName(this.currencyNameField == null ? "" : this.currencyNameField.getValue());
+        }
+    }
+
+    private void setCurrencyTab(boolean open) {
+        if (open && !this.display.canEditCurrency()) {
+            return;
+        }
+        this.currencyTabOpen = open;
+        for (CatalogTile tile : this.catalogTiles) {
+            tile.button().visible = !open;
+        }
+        if (this.confirmButton != null) {
+            this.confirmButton.visible = !open;
+        }
+        if (this.backButton != null) {
+            this.backButton.setMessage(gui(open ? "tab_mint" : "back"));
+        }
+        if (this.mintTabButton != null) {
+            this.mintTabButton.active = open;
+        }
+        if (this.currencyTabButton != null) {
+            this.currencyTabButton.active = !open;
+        }
+        if (this.currencyNameField != null) {
+            this.currencyNameField.visible = open;
+        }
+        if (this.saveCurrencyButton != null) {
+            this.saveCurrencyButton.visible = open;
+        }
+        this.refreshCurrencySaveState();
+    }
+
+    private void saveCurrencyName() {
+        if (!this.display.canEditCurrency() || this.currencyNameField == null) {
+            return;
+        }
+        String currencyName = this.currencyNameField.getValue().strip();
+        if (!validCurrencyName(currencyName)) {
+            this.status = gui("currency_name_invalid");
+            return;
+        }
+        ClientPacketDistributor.sendToServer(new UpdateCurrencyNamePayload(this.menu.containerId, currencyName));
+        this.status = gui("currency_name_sent");
+    }
+
+    private static boolean validCurrencyName(String value) {
+        int length = value.strip().codePointCount(0, value.strip().length());
+        return length >= Kingdom.MIN_CURRENCY_NAME_LENGTH && length <= Kingdom.MAX_CURRENCY_NAME_LENGTH;
+    }
+
     private void mint() {
         if (this.selectedSymbols.size() != CoinData.REQUIRED_SECONDARY_SYMBOLS) {
             this.status = gui("select_two_symbols");
@@ -147,31 +247,72 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         int top = this.topPos;
         graphics.blit(RenderPipelines.GUI_TEXTURED, MENU_TEXTURE, left, top, 0.0F, 0.0F, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT);
         renderInventorySurface(graphics, left, top);
-        renderMaterialSlotFrame(graphics, left, top);
+        if (!this.currencyTabOpen) {
+            renderMaterialSlotFrame(graphics, left, top);
+        } else {
+            renderCurrencyTabBackground(graphics, left, top);
+        }
 
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
-        renderCatalogTiles(graphics);
-        renderAssembly(graphics, left, top);
-        renderPreview(graphics, left, top);
 
         graphics.centeredText(this.font, this.title, left + SCREEN_WIDTH / 2, top + 12, 0xFFFFD878);
         graphics.centeredText(this.font, gui("kingdom", this.display.kingdomName()), left + SCREEN_WIDTH / 2, top + 26, 0xFFE4C67A);
-        graphics.centeredText(this.font, gui("required_crest", crestName(this.display.crest())), left + SCREEN_WIDTH / 2, top + 40, 0xFFCED2D4);
-        graphics.centeredText(this.font, this.status, left + SCREEN_WIDTH / 2, top + 307, 0xFFFFD878);
+        if (this.currencyTabOpen) {
+            renderCurrencyTabText(graphics, left, top);
+            return;
+        }
 
-        graphics.centeredText(this.font, gui("panel_bronze"), left + 296, top + 51, metalColor(Kingdom.Metal.COPPER));
-        graphics.centeredText(this.font, gui("panel_iron"), left + 452, top + 51, metalColor(Kingdom.Metal.IRON));
-        graphics.centeredText(this.font, gui("panel_gold"), left + 609, top + 51, metalColor(Kingdom.Metal.GOLD));
+        renderCatalogTiles(graphics);
+        renderAssembly(graphics, left, top);
+        renderPreview(graphics, left, top);
+        graphics.centeredText(this.font, this.status, left + SCREEN_WIDTH / 2, top + 296, 0xFFFFD878);
+
+        graphics.centeredText(this.font, gui("panel_bronze"), left + GRID_CENTERS[0], top + 50, metalColor(Kingdom.Metal.COPPER));
+        graphics.centeredText(this.font, gui("panel_iron"), left + GRID_CENTERS[1], top + 50, metalColor(Kingdom.Metal.IRON));
+        graphics.centeredText(this.font, gui("panel_gold"), left + GRID_CENTERS[2], top + 50, metalColor(Kingdom.Metal.GOLD));
         graphics.centeredText(this.font, gui("coin_formula"), left + 449, top + 174, 0xFFD7D9D9);
         graphics.centeredText(this.font, gui("preview"), left + PREVIEW_CENTER_X, top + 296, 0xFFE4C67A);
         graphics.centeredText(this.font, gui("player_inventory"), left + SCREEN_WIDTH / 2, top + 328, 0xFFE4C67A);
     }
 
+    private void renderCurrencyTabBackground(GuiGraphicsExtractor graphics, int left, int top) {
+        graphics.fill(left + 32, top + 146, left + 688, top + 266, 0xEF111214);
+        graphics.blit(
+            RenderPipelines.GUI_TEXTURED,
+            CURRENCY_TAB_TEXTURE,
+            left + 40,
+            top + 160,
+            0.0F,
+            0.0F,
+            640,
+            88,
+            640,
+            88,
+            640,
+            88
+        );
+    }
+
+    private void renderCurrencyTabText(GuiGraphicsExtractor graphics, int left, int top) {
+        // Cover the otherwise interactive ingot socket only while the settings panel is open.
+        graphics.fill(left + MATERIAL_CENTER_X - 11, top + ASSEMBLY_CENTER_Y - 11,
+            left + MATERIAL_CENTER_X + 11, top + ASSEMBLY_CENTER_Y + 11, 0xFF1B1711);
+        graphics.centeredText(this.font, gui("currency_tab_title"), left + SCREEN_WIDTH / 2, top + 150, 0xFFFFD878);
+        graphics.text(this.font, gui("currency_name"), left + 184, top + 183, 0xFFE4C67A);
+        graphics.text(this.font, gui("economy_fixed"), left + 184, top + 207, 0xFFFFD878);
+        graphics.text(this.font, gui("economy_example"), left + 184, top + 222, 0xFFCED2D4);
+        graphics.text(this.font, gui("economy_total"), left + 184, top + 237, 0xFFCED2D4);
+        graphics.centeredText(this.font, this.status, left + SCREEN_WIDTH / 2, top + 257, 0xFFFFD878);
+    }
+
     private void renderCatalogTiles(GuiGraphicsExtractor graphics) {
         for (CatalogTile tile : this.catalogTiles) {
+            // The clickable Button is intentionally covered here so each choice
+            // reads as a minted coin, not a loose glyph inside a gray rectangle.
+            graphics.fill(tile.x(), tile.y(), tile.x() + TILE_WIDTH, tile.y() + TILE_HEIGHT, 0xFF171515);
             graphics.blit(
                 RenderPipelines.GUI_TEXTURED,
-                symbolTexture(tile.metal(), tile.symbol()),
+                catalogCoinTexture(tile.metal(), tile.symbol()),
                 tile.x() + 3,
                 tile.y(),
                 0.0F,
@@ -190,7 +331,8 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
             }
             graphics.outline(tile.x(), tile.y(), TILE_WIDTH, TILE_HEIGHT, border);
             if (selectionIndex >= 0) {
-                graphics.text(this.font, Component.literal(Integer.toString(selectionIndex + 1)), tile.x() + 1, tile.y() + 1, 0xFF1B1510);
+                graphics.fill(tile.x() + 1, tile.y() + 1, tile.x() + 8, tile.y() + 8, 0xFFFFFFFF);
+                graphics.text(this.font, Component.literal(Integer.toString(selectionIndex + 1)), tile.x() + 2, tile.y() + 1, 0xFF1B1510);
             }
         }
     }
@@ -206,7 +348,7 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         if (symbol != null) {
             graphics.blit(
                 RenderPipelines.GUI_TEXTURED,
-                symbolTexture(this.selectedMetal, symbol),
+                catalogCoinTexture(this.selectedMetal, symbol),
                 centerX - 14,
                 centerY - 14,
                 0.0F,
@@ -263,7 +405,7 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         }
         graphics.blit(
             RenderPipelines.GUI_TEXTURED,
-            symbolTexture(this.selectedMetal, symbol),
+            catalogCoinTexture(this.selectedMetal, symbol),
             x,
             y,
             0.0F,
@@ -302,7 +444,7 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     }
 
     private int previewStyleId() {
-        return this.selectedSymbols.isEmpty() ? 1 : this.selectedSymbols.getFirst().id();
+        return this.selectedSymbols.isEmpty() ? Symbol.CROWN.id() : this.selectedSymbols.getFirst().id();
     }
 
     private Symbol symbolAt(int index) {
@@ -329,10 +471,10 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         return Component.translatable("gui.crownscoins.metal." + metal.name().toLowerCase(Locale.ROOT));
     }
 
-    private static Identifier symbolTexture(Kingdom.Metal metal, Symbol symbol) {
+    private static Identifier catalogCoinTexture(Kingdom.Metal metal, Symbol symbol) {
         return Identifier.fromNamespaceAndPath(
             CrownsCoins.MOD_ID,
-            "textures/gui/catalog/%s_%02d_%s.png".formatted(catalogMetalName(metal), symbol.id(), symbol.name().toLowerCase(Locale.ROOT))
+            "textures/gui/catalog_coin/%s_%02d_%s.png".formatted(catalogMetalName(metal), symbol.id(), symbol.name().toLowerCase(Locale.ROOT))
         );
     }
 
