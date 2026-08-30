@@ -211,6 +211,21 @@ public final class Kingdom {
         };
     }
 
+    /* Package-private: used only while normalizing legacy saved-data crests. */
+    Kingdom withCrest(Symbol replacementCrest) {
+        return new Kingdom(
+            this.id,
+            this.founder,
+            this.members,
+            this.name,
+            this.currencyName,
+            replacementCrest,
+            this.ironValue,
+            this.copperValue,
+            this.goldValue
+        );
+    }
+
     /* Package-private: SavedData owns mutations so it can mark itself dirty. */
     boolean addMember(UUID playerId) {
         return members.add(Objects.requireNonNull(playerId, "playerId"));

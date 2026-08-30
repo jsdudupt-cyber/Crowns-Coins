@@ -49,8 +49,18 @@ public final class KingdomSavedData extends SavedData {
 
     private KingdomSavedData(List<Kingdom> kingdoms) {
         Objects.requireNonNull(kingdoms, "kingdoms");
+        boolean migratedLegacyCrest = false;
         for (Kingdom kingdom : kingdoms) {
-            indexExisting(Objects.requireNonNull(kingdom, "kingdom"));
+            Kingdom existing = Objects.requireNonNull(kingdom, "kingdom");
+            Symbol normalizedCrest = KingdomCrest.normalizeLegacy(existing.crest());
+            if (normalizedCrest != existing.crest()) {
+                existing = existing.withCrest(normalizedCrest);
+                migratedLegacyCrest = true;
+            }
+            indexExisting(existing);
+        }
+        if (migratedLegacyCrest) {
+            setDirty();
         }
     }
 

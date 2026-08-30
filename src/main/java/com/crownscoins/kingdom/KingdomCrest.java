@@ -53,6 +53,29 @@ public enum KingdomCrest {
         return fromSymbol(symbol).isPresent();
     }
 
+    /**
+     * Converts the fifteen early prototype symbols into the nearest one of the
+     * ten permanent heraldic crests. It keeps older development worlds usable
+     * after the crest catalogue was narrowed to the finalized designs.
+     */
+    public static Symbol normalizeLegacy(Symbol symbol) {
+        if (isSupported(symbol)) {
+            return symbol;
+        }
+        return switch (symbol) {
+            case MOON, STAR -> Symbol.SUN;
+            case CROWN, HEART -> Symbol.LION;
+            case SHIELD, CROSS -> Symbol.TOWER;
+            case HAMMER, ANVIL -> Symbol.SWORD;
+            case FLAME -> Symbol.DRAGON;
+            case WAVE, RIVER -> Symbol.COMPASS;
+            case FLOWER -> Symbol.LEAF;
+            case DIAMOND, LIGHTNING -> Symbol.EAGLE;
+            case MOUNTAIN -> Symbol.WOLF;
+            case SUN, SWORD, TOWER, DRAGON, WOLF, EAGLE, LION, HORSE, LEAF, COMPASS -> symbol;
+        };
+    }
+
     public String translationKey() {
         return "crest.crownscoins." + name().toLowerCase(Locale.ROOT);
     }
