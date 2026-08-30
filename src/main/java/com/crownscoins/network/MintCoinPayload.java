@@ -1,6 +1,7 @@
 package com.crownscoins.network;
 
 import com.crownscoins.CrownsCoins;
+import com.crownscoins.coin.CoinData;
 import io.netty.buffer.ByteBuf;
 import java.util.List;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -15,13 +16,13 @@ import net.minecraft.resources.Identifier;
  * an ItemStack, a kingdom id, a Mint House position, or any currency metadata.</p>
  */
 public record MintCoinPayload(int containerId, int metalId, int styleId, List<Integer> symbolIds) implements CustomPacketPayload {
-    public static final int MAX_SYMBOLS = 3;
+    public static final int MAX_SYMBOLS = CoinData.REQUIRED_SECONDARY_SYMBOLS;
 
     public static final Type<MintCoinPayload> TYPE = new Type<>(
             Identifier.fromNamespaceAndPath(CrownsCoins.MOD_ID, "mint_coin")
     );
 
-    /** Decoding refuses collections with more than three entries before a handler can allocate/use them. */
+    /** Decoding refuses collections with more than the two allowed secondary symbols. */
     public static final StreamCodec<ByteBuf, List<Integer>> SYMBOL_IDS_CODEC = ByteBufCodecs.VAR_INT.apply(
             ByteBufCodecs.list(MAX_SYMBOLS)
     );

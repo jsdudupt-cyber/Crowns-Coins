@@ -1,6 +1,6 @@
 # Crowns & Coins
 
-Um mod de reinos e moedas para Minecraft. Crie seu reino, escolha seu brasão e moeda, vincule uma Casa da Moeda e cunhe moedas de ferro, cobre ou ouro com 25 estilos visuais e até três símbolos.
+Um mod de reinos e moedas para Minecraft. Crie seu reino, escolha um dos 10 brasões centrais, vincule uma Casa da Moeda e cunhe moedas de bronze, ferro ou ouro com dois símbolos laterais.
 
 ## Requisitos
 
@@ -19,11 +19,12 @@ Um mod de reinos e moedas para Minecraft. Crie seu reino, escolha seu brasão e 
 
 1. Crie a **Casa da Moeda** na bancada: ferro, cobre e ouro nos cantos/laterais e uma bancada de trabalho no centro.
 2. Coloque a Casa da Moeda no mundo e interaja com ela.
-3. Se ainda não fizer parte de um reino, preencha o nome do reino, a moeda, os valores e escolha um brasão.
-4. Com a Casa da Moeda vinculada, escolha o metal, o estilo e até três símbolos.
-5. Tenha um lingote do metal escolhido no inventário e confirme a cunhagem. O mod consome um lingote e entrega uma moeda personalizada.
+3. Se ainda não fizer parte de um reino, preencha o nome do reino, a moeda, os valores e escolha um dos 10 brasões.
+4. Com a Casa da Moeda vinculada, escolha bronze, ferro ou ouro em seu painel de 25 símbolos; ao trocar de painel, as escolhas laterais são limpas.
+5. Preencha os dois espaços de símbolo, confira a prévia e confirme a cunhagem. O brasão central é obrigatório e sempre vem do reino.
+6. Tenha um lingote correspondente no inventário. O mod consome um lingote e entrega uma moeda personalizada.
 
-Todas as regras importantes são verificadas pelo servidor: reino, vinculação da Casa da Moeda, distância, metal, estilo, símbolos e lingote.
+Todas as regras importantes são verificadas pelo servidor: reino, vinculação da Casa da Moeda, distância, brasão, metal, os dois símbolos e lingote.
 
 ## Para desenvolvedores
 

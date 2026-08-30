@@ -3,6 +3,7 @@ package com.crownscoins.menu;
 import com.crownscoins.block.MintHouseBlockEntity;
 import com.crownscoins.CrownsCoins;
 import com.crownscoins.kingdom.Kingdom;
+import com.crownscoins.kingdom.KingdomCrest;
 import com.crownscoins.kingdom.KingdomSavedData;
 import com.crownscoins.kingdom.Symbol;
 import com.crownscoins.network.CreateKingdomPayload;
@@ -164,7 +165,7 @@ public final class KingdomCreationMenu extends MintHouseBoundMenu implements Net
 
         final Symbol crest;
         try {
-            crest = Symbol.byId(crestId);
+            crest = KingdomCrest.byId(crestId).symbol();
             // Use the domain constructor so server payload validation has exactly
             // the same text/value constraints as persisted kingdom creation.
             new Kingdom(

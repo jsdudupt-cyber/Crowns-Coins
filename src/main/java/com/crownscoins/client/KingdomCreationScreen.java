@@ -1,6 +1,7 @@
 package com.crownscoins.client;
 
 import com.crownscoins.kingdom.Kingdom;
+import com.crownscoins.kingdom.KingdomCrest;
 import com.crownscoins.kingdom.Symbol;
 import com.crownscoins.menu.KingdomCreationMenu;
 import com.crownscoins.network.CreateKingdomPayload;
@@ -32,7 +33,7 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
     private EditBox goldValue;
     private final List<Button> crestButtons = new ArrayList<>();
     private Button createButton;
-    private Symbol selectedCrest = Symbol.CROWN;
+    private KingdomCrest selectedCrest = KingdomCrest.CROWNED_LION;
     private Component status = Component.empty();
 
     public KingdomCreationScreen(KingdomCreationMenu menu, Inventory inventory, Component title) {
@@ -62,10 +63,10 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
         this.goldValue = this.addRenderableWidget(numberField(left, top + 178, "gold_value", "1"));
 
         this.crestButtons.clear();
-        Symbol[] crests = Symbol.values();
+        KingdomCrest[] crests = KingdomCrest.values();
         int crestTop = top + 218;
         for (int index = 0; index < crests.length; index++) {
-            Symbol crest = crests[index];
+            KingdomCrest crest = crests[index];
             int x = left + (index % 5) * 38;
             int y = crestTop + (index / 5) * 21;
             Button button = this.addRenderableWidget(Button.builder(Component.empty(), ignored -> selectCrest(crest))
@@ -95,16 +96,16 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
         return field;
     }
 
-    private void selectCrest(Symbol crest) {
+    private void selectCrest(KingdomCrest crest) {
         this.selectedCrest = crest;
         this.status = Component.empty();
         this.refreshCrestButtons();
     }
 
     private void refreshCrestButtons() {
-        Symbol[] crests = Symbol.values();
+        KingdomCrest[] crests = KingdomCrest.values();
         for (int index = 0; index < this.crestButtons.size(); index++) {
-            Symbol crest = crests[index];
+            KingdomCrest crest = crests[index];
             String marker = crest == this.selectedCrest ? ">" : "";
             this.crestButtons.get(index).setMessage(Component.literal(marker + shortLabel(crest)));
         }
@@ -193,8 +194,8 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
         return Component.translatable("gui.crownscoins." + key, arguments);
     }
 
-    private static String shortLabel(Symbol symbol) {
-        String name = Component.translatable("symbol.crownscoins." + symbol.name().toLowerCase(java.util.Locale.ROOT)).getString();
+    private static String shortLabel(KingdomCrest crest) {
+        String name = Component.translatable(crest.translationKey()).getString();
         return name.substring(0, Math.min(4, name.length()));
     }
 
@@ -202,7 +203,7 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
     public record KingdomDraft(
         String kingdomName,
         String currencyName,
-        Symbol crest,
+        KingdomCrest crest,
         int ironValue,
         int copperValue,
         int goldValue

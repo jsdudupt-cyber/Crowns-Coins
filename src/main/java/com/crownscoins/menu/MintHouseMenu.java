@@ -4,6 +4,7 @@ import com.crownscoins.block.MintHouseBlockEntity;
 import com.crownscoins.CrownsCoins;
 import com.crownscoins.coin.CoinData;
 import com.crownscoins.kingdom.Kingdom;
+import com.crownscoins.kingdom.KingdomCrest;
 import com.crownscoins.kingdom.KingdomSavedData;
 import com.crownscoins.kingdom.Symbol;
 import com.crownscoins.network.MintCoinPayload;
@@ -79,6 +80,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements NetworkHa
         return currentMintHouse(player)
             .flatMap(mintHouse -> mintHouse.kingdomId())
             .flatMap(kingdomId -> KingdomSavedData.get((ServerLevel) player.level()).find(kingdomId))
+            .filter(kingdom -> KingdomCrest.isSupported(kingdom.crest()))
             .isPresent();
     }
 
@@ -151,7 +153,12 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements NetworkHa
         }
 
         Optional<Kingdom.Metal> metal = metalById(metalId);
-        if (metal.isEmpty() || styleId < 1 || styleId > CoinData.MAX_STYLE_ID || symbolIds == null || symbolIds.size() > CoinData.MAX_SYMBOLS) {
+        if (metal.isEmpty()
+            || styleId < 1
+            || styleId > CoinData.MAX_STYLE_ID
+            || symbolIds == null
+            || symbolIds.size() != CoinData.REQUIRED_SECONDARY_SYMBOLS
+            || !KingdomCrest.isSupported(kingdom.get().crest())) {
             return Optional.empty();
         }
 
@@ -225,7 +232,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements NetworkHa
         };
     }
 
-    /** A server-validated mint intent. Symbols preserve predictable catalog order. */
+    /** A server-validated mint intent. The two symbols preserve left/right catalog order. */
     public record MintRequest(Kingdom kingdom, Kingdom.Metal metal, int styleId, List<Symbol> symbols) {
     }
 
