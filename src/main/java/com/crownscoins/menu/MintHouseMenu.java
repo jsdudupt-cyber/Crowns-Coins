@@ -13,6 +13,7 @@ import com.crownscoins.network.UpdateCurrencyNamePayload;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
@@ -31,6 +32,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomModelData;
 import net.minecraft.world.level.Level;
 
 /**
@@ -310,6 +312,12 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             request.symbols()
         );
         coin.set(CrownsCoins.COIN_DATA.get(), coinData);
+        coin.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(
+            List.of(),
+            List.of(),
+            request.symbols().stream().map(symbol -> symbol.name().toLowerCase(Locale.ROOT)).toList(),
+            List.of()
+        ));
         coin.set(DataComponents.CUSTOM_NAME, Component.literal(kingdom.currencyName()));
         return coin;
     }

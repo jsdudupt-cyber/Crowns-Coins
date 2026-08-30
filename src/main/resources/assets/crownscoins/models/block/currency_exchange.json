@@ -1,0 +1,51 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "crownscoins:block/currency_exchange_side",
+    "front": "crownscoins:block/currency_exchange_front",
+    "back": "crownscoins:block/currency_exchange_back",
+    "side": "crownscoins:block/currency_exchange_side",
+    "top": "crownscoins:block/currency_exchange_top",
+    "bottom": "crownscoins:block/currency_exchange_bottom",
+    "metal": "crownscoins:block/currency_exchange_metal",
+    "dial": "crownscoins:block/currency_exchange_dial"
+  },
+  "elements": [
+    {
+      "from": [0, 0, 0],
+      "to": [16, 11, 16],
+      "faces": {
+        "down": { "texture": "#bottom" },
+        "up": { "texture": "#top" },
+        "north": { "texture": "#front" },
+        "south": { "texture": "#back" },
+        "east": { "texture": "#side" },
+        "west": { "texture": "#side" }
+      }
+    },
+    {
+      "from": [0, 11, 0],
+      "to": [16, 13, 16],
+      "faces": {
+        "down": { "texture": "#bottom" },
+        "up": { "texture": "#top" },
+        "north": { "texture": "#front" },
+        "south": { "texture": "#back" },
+        "east": { "texture": "#side" },
+        "west": { "texture": "#side" }
+      }
+    },
+    {
+      "from": [4, 13, 4],
+      "to": [12, 14, 12],
+      "faces": {
+        "down": { "texture": "#metal" },
+        "up": { "texture": "#dial" },
+        "north": { "texture": "#metal" },
+        "south": { "texture": "#metal" },
+        "east": { "texture": "#metal" },
+        "west": { "texture": "#metal" }
+      }
+    }
+  ]
+}

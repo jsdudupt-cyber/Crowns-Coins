@@ -24,10 +24,10 @@ public final class Kingdom {
     public static final int MAX_COIN_VALUE = 1_000_000;
     /** One bronze coin is the base unit used by every kingdom. */
     public static final int COPPER_COIN_VALUE = 1;
-    /** Ten bronze coins have the economic value of one iron coin. */
-    public static final int IRON_COIN_VALUE = 10;
-    /** Fifteen iron coins have the economic value of one gold coin. */
-    public static final int GOLD_COIN_VALUE = 150;
+    /** Twenty bronze coins have the economic value of one iron coin. */
+    public static final int IRON_COIN_VALUE = 20;
+    /** Twenty-five iron coins have the economic value of one gold coin. */
+    public static final int GOLD_COIN_VALUE = 500;
 
     /**
      * The serialized form deliberately contains only primitive, server-verifiable data.

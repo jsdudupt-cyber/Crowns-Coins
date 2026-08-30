@@ -42,6 +42,25 @@ function Select-Model([string]$Property, [string]$Fallback, [string]$ModelPrefix
     }
 }
 
+function Select-CustomModelDataSymbol([int]$Index, [string]$Fallback, [string]$ModelPrefix) {
+    $cases = @()
+    for ($symbolIndex = 0; $symbolIndex -lt $SymbolNames.Count; $symbolIndex++) {
+        $id = $symbolIndex + 1
+        $name = ('{0:D2}_{1}' -f $id, $SymbolNames[$symbolIndex])
+        $cases += [ordered]@{
+            when = $SymbolNames[$symbolIndex]
+            model = (Model-Reference ("${Namespace}:item/$ModelPrefix$name"))
+        }
+    }
+    return [ordered]@{
+        type = 'minecraft:select'
+        property = 'minecraft:custom_model_data'
+        index = $Index
+        fallback = (Model-Reference $Fallback)
+        cases = $cases
+    }
+}
+
 foreach ($metal in @('iron', 'copper', 'gold')) {
     for ($index = 0; $index -lt $SymbolNames.Count; $index++) {
         $id = $index + 1
@@ -73,11 +92,15 @@ foreach ($metal in @('iron', 'copper', 'gold')) {
     $model = [ordered]@{
         type = 'minecraft:composite'
         models = @(
-            (Select-Model "${Namespace}:coin_style" "${Namespace}:item/coin/$metal`_01_sun" "coin/$metal`_"),
-            (Select-Model "${Namespace}:coin_crest" "${Namespace}:item/overlay/blank" 'overlay/crest_center/'),
-            (Select-Model "${Namespace}:coin_symbol_one" "${Namespace}:item/overlay/blank" 'overlay/symbol_left/'),
-            (Select-Model "${Namespace}:coin_symbol_two" "${Namespace}:item/overlay/blank" 'overlay/symbol_right/'),
-            (Select-Model "${Namespace}:coin_symbol_three" "${Namespace}:item/overlay/blank" 'overlay/symbol_bottom/')
+            # The permanent Crown is not a select property: it must always be
+            # drawn, including on a stack restored from an older world save.
+            (Model-Reference "${Namespace}:item/coin/$metal`_04_crown"),
+            (Model-Reference "${Namespace}:item/overlay/crest_center/04_crown"),
+            # New minted coins store their two choices in the vanilla
+            # custom_model_data component.  Native selectors avoid the custom
+            # selector fallback that left real minted stacks visually blank.
+            (Select-CustomModelDataSymbol 0 "${Namespace}:item/overlay/blank" 'overlay/symbol_left/'),
+            (Select-CustomModelDataSymbol 1 "${Namespace}:item/overlay/blank" 'overlay/symbol_right/')
         )
     }
     Write-Json (Join-Path $ItemRoot "$metal`_coin.json") ([ordered]@{ model = $model })

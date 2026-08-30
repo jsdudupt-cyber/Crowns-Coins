@@ -21,7 +21,9 @@ import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import com.crownscoins.block.MintHouseBlock;
 import com.crownscoins.block.MintHouseBlockEntity;
+import com.crownscoins.block.CurrencyExchangeBlock;
 import com.crownscoins.network.NetworkHandler;
+import com.crownscoins.menu.CurrencyExchangeMenu;
 import com.crownscoins.menu.KingdomCreationMenu;
 import com.crownscoins.menu.MintHouseMenu;
 import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
@@ -44,25 +46,37 @@ public final class CrownsCoins {
         MintHouseBlock::new,
         () -> BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(3.5F)
     );
+    /** Public station for exchanging and melting already-minted currency. */
+    public static final DeferredBlock<CurrencyExchangeBlock> CURRENCY_EXCHANGE = BLOCKS.registerBlock(
+        "currency_exchange",
+        CurrencyExchangeBlock::new,
+        () -> BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(3.0F)
+    );
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MintHouseBlockEntity>> MINT_HOUSE_ENTITY = BLOCK_ENTITIES.register("mint_house", () -> new BlockEntityType<>(MintHouseBlockEntity::new, false, MINT_HOUSE.get()));
     public static final DeferredItem<BlockItem> MINT_HOUSE_ITEM = ITEMS.registerSimpleBlockItem("mint_house", MINT_HOUSE);
+    public static final DeferredItem<BlockItem> CURRENCY_EXCHANGE_ITEM = ITEMS.registerSimpleBlockItem("currency_exchange", CURRENCY_EXCHANGE);
     public static final DeferredItem<Item> IRON_COIN = ITEMS.registerSimpleItem("iron_coin", p -> p.stacksTo(64));
     public static final DeferredItem<Item> COPPER_COIN = ITEMS.registerSimpleItem("copper_coin", p -> p.stacksTo(64));
     public static final DeferredItem<Item> GOLD_COIN = ITEMS.registerSimpleItem("gold_coin", p -> p.stacksTo(64));
+    /** Minecraft has no copper nugget, so the exchange station supplies one. */
+    public static final DeferredItem<Item> COPPER_NUGGET = ITEMS.registerSimpleItem("copper_nugget", p -> p.stacksTo(64));
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<CoinData>> COIN_DATA = DATA_COMPONENTS.registerComponentType(
         "coin_data",
         builder -> builder.persistent(CoinData.CODEC).networkSynchronized(CoinData.STREAM_CODEC).cacheEncoding()
     );
     public static final DeferredHolder<MenuType<?>, MenuType<KingdomCreationMenu>> KINGDOM_CREATION_MENU = MENUS.register("kingdom_creation", () -> IMenuTypeExtension.create(KingdomCreationMenu::new));
     public static final DeferredHolder<MenuType<?>, MenuType<MintHouseMenu>> MINT_HOUSE_MENU = MENUS.register("mint_house", () -> IMenuTypeExtension.create(MintHouseMenu::new));
+    public static final DeferredHolder<MenuType<?>, MenuType<CurrencyExchangeMenu>> CURRENCY_EXCHANGE_MENU = MENUS.register("currency_exchange", () -> IMenuTypeExtension.create(CurrencyExchangeMenu::new));
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> TAB = TABS.register("main", () -> CreativeModeTab.builder()
             .title(Component.translatable("itemGroup.crownscoins"))
             .icon(() -> GOLD_COIN.get().getDefaultInstance())
             .displayItems((parameters, output) -> {
                 output.accept(MINT_HOUSE_ITEM.get());
+                output.accept(CURRENCY_EXCHANGE_ITEM.get());
                 output.accept(IRON_COIN.get());
                 output.accept(COPPER_COIN.get());
                 output.accept(GOLD_COIN.get());
+                output.accept(COPPER_NUGGET.get());
             }).build());
 
     public CrownsCoins(IEventBus eventBus) {

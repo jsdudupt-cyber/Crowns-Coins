@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["ICI", "CMC", "INI"],
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "C": "minecraft:copper_ingot",
+    "M": "minecraft:smithing_table",
+    "N": "minecraft:gold_nugget"
+  },
+  "result": { "id": "crownscoins:currency_exchange", "count": 1 }
+}

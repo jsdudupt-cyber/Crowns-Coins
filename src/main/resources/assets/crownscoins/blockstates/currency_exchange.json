@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "crownscoins:block/currency_exchange" },
+    "facing=east": { "model": "crownscoins:block/currency_exchange", "y": 90 },
+    "facing=south": { "model": "crownscoins:block/currency_exchange", "y": 180 },
+    "facing=west": { "model": "crownscoins:block/currency_exchange", "y": 270 }
+  }
+}

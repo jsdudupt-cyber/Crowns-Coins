@@ -20,6 +20,7 @@ public final class CrownsCoinsClient {
     public static void registerMenuScreens(RegisterMenuScreensEvent event) {
         event.register(CrownsCoins.KINGDOM_CREATION_MENU.get(), KingdomCreationScreen::new);
         event.register(CrownsCoins.MINT_HOUSE_MENU.get(), MintHouseScreen::new);
+        event.register(CrownsCoins.CURRENCY_EXCHANGE_MENU.get(), CurrencyExchangeScreen::new);
     }
 
     @SubscribeEvent
