@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "crownscoins:item/overlay/symbol_bottom/04_crown"
+  }
+}

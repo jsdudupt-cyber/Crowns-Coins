@@ -10,45 +10,46 @@ import com.crownscoins.network.MintCoinPayload;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 /**
- * Full-screen visual catalogue for the Mint House. The client can only choose
- * bounded catalog values; the server remains the authority for the kingdom,
- * required crest, metal material and inventory consumption.
+ * The Mint House works like a crafting table: the player puts one ingot in the
+ * visible socket, selects the two side symbols, then mints into their inventory.
  */
 public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu> {
     private static final int SCREEN_WIDTH = 720;
     private static final int SCREEN_HEIGHT = 540;
-    private static final int TILE_WIDTH = 34;
-    private static final int TILE_HEIGHT = 28;
+    private static final int TILE_WIDTH = 22;
+    private static final int TILE_HEIGHT = 17;
     private static final int TILE_GAP_X = 2;
-    private static final int TILE_GAP_Y = 3;
-    private static final int GRID_TOP = 112;
-    private static final int[] GRID_LEFTS = {70, 266, 462};
-    private static final int CREST_TOP = 398;
-    private static final int CREST_LEFT = 211;
-    private static final int CREST_WIDTH = 26;
-    private static final int CREST_GAP = 3;
-    private static final UUID PREVIEW_KINGDOM_ID = new UUID(0L, 0L);
+    private static final int TILE_GAP_Y = 2;
+    private static final int GRID_TOP = 64;
+    private static final int[] GRID_LEFTS = {236, 386, 538};
+    private static final int PREVIEW_CENTER_X = 134;
+    private static final int PREVIEW_CENTER_Y = 236;
+    private static final int MATERIAL_CENTER_X = 320;
+    private static final int LEFT_SYMBOL_CENTER_X = 452;
+    private static final int RIGHT_SYMBOL_CENTER_X = 590;
+    private static final int ASSEMBLY_CENTER_Y = 236;
+    private static final int PLAYER_INVENTORY_X = 271;
+    private static final int PLAYER_INVENTORY_Y = 348;
+    private static final int HOTBAR_Y = PLAYER_INVENTORY_Y + 58;
     private static final Identifier MENU_TEXTURE = Identifier.fromNamespaceAndPath(
         CrownsCoins.MOD_ID,
-        "textures/gui/mint_house_menu.png"
+        "textures/gui/mint_house_workbench.png"
     );
 
     private final MintHouseMenu.ClientMintData display;
     private final List<Symbol> selectedSymbols = new ArrayList<>(CoinData.REQUIRED_SECONDARY_SYMBOLS);
     private final List<CatalogTile> catalogTiles = new ArrayList<>();
-    private final List<CrestTile> crestTiles = new ArrayList<>();
     private Kingdom.Metal selectedMetal = Kingdom.Metal.COPPER;
     private Button confirmButton;
     private Component status = Component.empty();
@@ -56,13 +57,15 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     public MintHouseScreen(MintHouseMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title, SCREEN_WIDTH, SCREEN_HEIGHT);
         this.display = menu.clientData();
+        // The bespoke texture owns all labels; hide AbstractContainerScreen's defaults.
+        this.titleLabelX = -10_000;
+        this.inventoryLabelX = -10_000;
     }
 
     @Override
     protected void init() {
         super.init();
         this.catalogTiles.clear();
-        this.crestTiles.clear();
 
         Kingdom.Metal[] metals = {Kingdom.Metal.COPPER, Kingdom.Metal.IRON, Kingdom.Metal.GOLD};
         Symbol[] symbols = Symbol.values();
@@ -74,29 +77,24 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
                 int y = this.topPos + GRID_TOP + (index / 5) * (TILE_HEIGHT + TILE_GAP_Y);
                 Button button = this.addRenderableWidget(Button.builder(Component.empty(), ignored -> chooseSymbol(metal, symbol))
                     .bounds(x, y, TILE_WIDTH, TILE_HEIGHT)
+                    .tooltip(Tooltip.create(symbolName(symbol)))
                     .build());
                 this.catalogTiles.add(new CatalogTile(button, metal, symbol, x, y));
             }
         }
 
-        KingdomCrest[] crests = KingdomCrest.values();
-        for (int index = 0; index < crests.length; index++) {
-            KingdomCrest crest = crests[index];
-            int x = this.leftPos + CREST_LEFT + index * (CREST_WIDTH + CREST_GAP);
-            int y = this.topPos + CREST_TOP;
-            Button button = this.addRenderableWidget(Button.builder(Component.empty(), ignored -> { })
-                .bounds(x, y, CREST_WIDTH, CREST_WIDTH)
-                .build());
-            button.active = false;
-            this.crestTiles.add(new CrestTile(button, crest, x, y));
-        }
-
         this.confirmButton = this.addRenderableWidget(Button.builder(gui("confirm"), ignored -> mint())
-            .bounds(this.leftPos + 514, this.topPos + 408, 60, 36)
+            .bounds(this.leftPos + 540, this.topPos + 271, 76, 20)
             .build());
         this.addRenderableWidget(Button.builder(gui("back"), ignored -> this.onClose())
-            .bounds(this.leftPos + 596, this.topPos + 408, 60, 36)
+            .bounds(this.leftPos + 456, this.topPos + 271, 76, 20)
             .build());
+        this.refreshSelectionState();
+    }
+
+    @Override
+    protected void containerTick() {
+        super.containerTick();
         this.refreshSelectionState();
     }
 
@@ -120,13 +118,18 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     private void refreshSelectionState() {
         if (this.confirmButton != null) {
             this.confirmButton.active = this.selectedSymbols.size() == CoinData.REQUIRED_SECONDARY_SYMBOLS
-                && KingdomCrest.isSupported(this.display.crest());
+                && KingdomCrest.isSupported(this.display.crest())
+                && this.menu.hasMaterialFor(this.selectedMetal);
         }
     }
 
     private void mint() {
         if (this.selectedSymbols.size() != CoinData.REQUIRED_SECONDARY_SYMBOLS) {
             this.status = gui("select_two_symbols");
+            return;
+        }
+        if (!this.menu.hasMaterialFor(this.selectedMetal)) {
+            this.status = gui("insert_matching_ingot", metalName(this.selectedMetal));
             return;
         }
         ClientPacketDistributor.sendToServer(new MintCoinPayload(
@@ -143,24 +146,25 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         int left = this.leftPos;
         int top = this.topPos;
         graphics.blit(RenderPipelines.GUI_TEXTURED, MENU_TEXTURE, left, top, 0.0F, 0.0F, SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT);
+        renderInventorySurface(graphics, left, top);
+        renderMaterialSlotFrame(graphics, left, top);
 
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         renderCatalogTiles(graphics);
-        renderCrestTiles(graphics);
-        renderSelectionSlots(graphics, left, top);
+        renderAssembly(graphics, left, top);
         renderPreview(graphics, left, top);
 
         graphics.centeredText(this.font, this.title, left + SCREEN_WIDTH / 2, top + 12, 0xFFFFD878);
-        graphics.centeredText(this.font, gui("kingdom", this.display.kingdomName()), left + SCREEN_WIDTH / 2, top + 27, 0xFFE4C67A);
-        graphics.centeredText(this.font, gui("required_crest", crestName(this.display.crest())), left + SCREEN_WIDTH / 2, top + 42, 0xFFBABDC0);
+        graphics.centeredText(this.font, gui("kingdom", this.display.kingdomName()), left + SCREEN_WIDTH / 2, top + 26, 0xFFE4C67A);
+        graphics.centeredText(this.font, gui("required_crest", crestName(this.display.crest())), left + SCREEN_WIDTH / 2, top + 40, 0xFFCED2D4);
+        graphics.centeredText(this.font, this.status, left + SCREEN_WIDTH / 2, top + 307, 0xFFFFD878);
 
-        graphics.centeredText(this.font, gui("panel_bronze"), left + 160, top + 82, metalColor(Kingdom.Metal.COPPER));
-        graphics.centeredText(this.font, gui("panel_iron"), left + 356, top + 82, metalColor(Kingdom.Metal.IRON));
-        graphics.centeredText(this.font, gui("panel_gold"), left + 552, top + 82, metalColor(Kingdom.Metal.GOLD));
-        graphics.centeredText(this.font, gui("select_symbols", CoinData.REQUIRED_SECONDARY_SYMBOLS), left + SCREEN_WIDTH / 2, top + 334, 0xFFD7D9D9);
-        graphics.centeredText(this.font, gui("central_crest", KingdomCrest.values().length), left + SCREEN_WIDTH / 2, top + 382, 0xFFE4C67A);
-        graphics.centeredText(this.font, gui("preview"), left + 117, top + 486, 0xFFE4C67A);
-        graphics.centeredText(this.font, this.status, left + SCREEN_WIDTH / 2, top + 516, 0xFFFFD878);
+        graphics.centeredText(this.font, gui("panel_bronze"), left + 296, top + 51, metalColor(Kingdom.Metal.COPPER));
+        graphics.centeredText(this.font, gui("panel_iron"), left + 452, top + 51, metalColor(Kingdom.Metal.IRON));
+        graphics.centeredText(this.font, gui("panel_gold"), left + 609, top + 51, metalColor(Kingdom.Metal.GOLD));
+        graphics.centeredText(this.font, gui("coin_formula"), left + 449, top + 174, 0xFFD7D9D9);
+        graphics.centeredText(this.font, gui("preview"), left + PREVIEW_CENTER_X, top + 296, 0xFFE4C67A);
+        graphics.centeredText(this.font, gui("player_inventory"), left + SCREEN_WIDTH / 2, top + 328, 0xFFE4C67A);
     }
 
     private void renderCatalogTiles(GuiGraphicsExtractor graphics) {
@@ -168,8 +172,8 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
             graphics.blit(
                 RenderPipelines.GUI_TEXTURED,
                 symbolTexture(tile.metal(), tile.symbol()),
-                tile.x() + 9,
-                tile.y() + 5,
+                tile.x() + 3,
+                tile.y(),
                 0.0F,
                 0.0F,
                 16,
@@ -179,96 +183,130 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
                 32,
                 32
             );
-            int border = tile.metal() == this.selectedMetal ? metalColor(tile.metal()) : 0x80626968;
-            if (this.selectedMetal == tile.metal() && this.selectedSymbols.contains(tile.symbol())) {
+            int selectionIndex = this.selectedMetal == tile.metal() ? this.selectedSymbols.indexOf(tile.symbol()) : -1;
+            int border = this.selectedMetal == tile.metal() ? metalColor(tile.metal()) : 0x80626968;
+            if (selectionIndex >= 0) {
                 border = 0xFFFFFFFF;
             }
             graphics.outline(tile.x(), tile.y(), TILE_WIDTH, TILE_HEIGHT, border);
+            if (selectionIndex >= 0) {
+                graphics.text(this.font, Component.literal(Integer.toString(selectionIndex + 1)), tile.x() + 1, tile.y() + 1, 0xFF1B1510);
+            }
         }
     }
 
-    private void renderCrestTiles(GuiGraphicsExtractor graphics) {
-        for (CrestTile tile : this.crestTiles) {
+    private void renderAssembly(GuiGraphicsExtractor graphics, int left, int top) {
+        graphics.centeredText(this.font, gui("material_slot"), left + MATERIAL_CENTER_X, top + 200, 0xFFE4C67A);
+        renderChosenSymbol(graphics, left + LEFT_SYMBOL_CENTER_X, top + ASSEMBLY_CENTER_Y, gui("left_symbol"), symbolAt(0));
+        renderChosenSymbol(graphics, left + RIGHT_SYMBOL_CENTER_X, top + ASSEMBLY_CENTER_Y, gui("right_symbol"), symbolAt(1));
+    }
+
+    private void renderChosenSymbol(GuiGraphicsExtractor graphics, int centerX, int centerY, Component label, Symbol symbol) {
+        graphics.centeredText(this.font, label, centerX, centerY - 36, 0xFFE4C67A);
+        if (symbol != null) {
             graphics.blit(
                 RenderPipelines.GUI_TEXTURED,
-                crestTexture(tile.crest()),
-                tile.x() + 5,
-                tile.y() + 5,
+                symbolTexture(this.selectedMetal, symbol),
+                centerX - 14,
+                centerY - 14,
                 0.0F,
                 0.0F,
-                16,
-                16,
+                28,
+                28,
                 32,
                 32,
                 32,
                 32
             );
-            boolean kingdomCrest = tile.crest().symbol() == this.display.crest();
-            graphics.outline(tile.x(), tile.y(), CREST_WIDTH, CREST_WIDTH, kingdomCrest ? 0xFFFFD878 : 0x805E6264);
+            graphics.centeredText(this.font, symbolName(symbol), centerX, centerY + 28, 0xFFD7D9D9);
+        } else {
+            graphics.centeredText(this.font, gui("empty_slot"), centerX, centerY - 3, 0xFF9C9C9C);
         }
     }
 
-    private void renderSelectionSlots(GuiGraphicsExtractor graphics, int left, int top) {
-        renderSelectionSlot(graphics, left + 236, top + 344, gui("left_symbol"), symbolAt(0));
-        renderSelectionSlot(graphics, left + 386, top + 344, gui("right_symbol"), symbolAt(1));
-    }
-
-    private void renderSelectionSlot(GuiGraphicsExtractor graphics, int x, int y, Component label, Component value) {
-        graphics.fill(x, y, x + 134, y + 24, 0xC0101113);
-        graphics.outline(x, y, 134, 24, 0xFF856539);
-        graphics.centeredText(this.font, label.copy().append(Component.literal(": ")).append(value), x + 67, y + 8, 0xFFD7D9D9);
-    }
-
     private void renderPreview(GuiGraphicsExtractor graphics, int left, int top) {
-        ItemStack preview = createPreviewStack();
-        var pose = graphics.pose();
-        pose.pushMatrix();
-        pose.translate(left + 77, top + 388);
-        pose.scale(5.0F);
-        graphics.item(preview, 0, 0);
-        pose.popMatrix();
+        graphics.blit(
+            RenderPipelines.GUI_TEXTURED,
+            coinTexture(this.selectedMetal, previewStyleId()),
+            left + PREVIEW_CENTER_X - 50,
+            top + PREVIEW_CENTER_Y - 50,
+            0.0F,
+            0.0F,
+            100,
+            100,
+            32,
+            32,
+            32,
+            32
+        );
+        graphics.blit(
+            RenderPipelines.GUI_TEXTURED,
+            crestTexture(this.display.crest()),
+            left + PREVIEW_CENTER_X - 20,
+            top + PREVIEW_CENTER_Y - 20,
+            0.0F,
+            0.0F,
+            40,
+            40,
+            32,
+            32,
+            32,
+            32
+        );
+        renderPreviewSideSymbol(graphics, left + PREVIEW_CENTER_X - 35, top + PREVIEW_CENTER_Y + 8, symbolAt(0));
+        renderPreviewSideSymbol(graphics, left + PREVIEW_CENTER_X + 13, top + PREVIEW_CENTER_Y + 8, symbolAt(1));
     }
 
-    private ItemStack createPreviewStack() {
-        Kingdom.Metal metal = this.selectedMetal;
-        ItemStack preview = new ItemStack(switch (metal) {
-            case IRON -> CrownsCoins.IRON_COIN.get();
-            case COPPER -> CrownsCoins.COPPER_COIN.get();
-            case GOLD -> CrownsCoins.GOLD_COIN.get();
-        });
-        CoinData.Material material = switch (metal) {
-            case IRON -> CoinData.Material.IRON;
-            case COPPER -> CoinData.Material.COPPER;
-            case GOLD -> CoinData.Material.GOLD;
-        };
-        String kingdomName = this.display.kingdomName().isBlank() ? "Reino" : this.display.kingdomName();
-        preview.set(CrownsCoins.COIN_DATA.get(), new CoinData(
-            PREVIEW_KINGDOM_ID,
-            kingdomName,
-            "Prévia",
-            this.display.crest(),
-            material,
-            valueFor(metal),
-            previewStyleId(),
-            this.selectedSymbols
-        ));
-        return preview;
+    private void renderPreviewSideSymbol(GuiGraphicsExtractor graphics, int x, int y, Symbol symbol) {
+        if (symbol == null) {
+            return;
+        }
+        graphics.blit(
+            RenderPipelines.GUI_TEXTURED,
+            symbolTexture(this.selectedMetal, symbol),
+            x,
+            y,
+            0.0F,
+            0.0F,
+            22,
+            22,
+            32,
+            32,
+            32,
+            32
+        );
+    }
+
+    private void renderInventorySurface(GuiGraphicsExtractor graphics, int left, int top) {
+        int panelX = left + 250;
+        int panelY = top + 320;
+        graphics.fill(panelX, panelY, panelX + 220, panelY + 118, 0xE3111214);
+        graphics.outline(panelX, panelY, 220, 118, 0xFF8C673C);
+        for (int row = 0; row < 3; row++) {
+            for (int column = 0; column < 9; column++) {
+                renderSlotFrame(graphics, left + PLAYER_INVENTORY_X + column * 18, top + PLAYER_INVENTORY_Y + row * 18);
+            }
+        }
+        for (int column = 0; column < 9; column++) {
+            renderSlotFrame(graphics, left + PLAYER_INVENTORY_X + column * 18, top + HOTBAR_Y);
+        }
+    }
+
+    private void renderMaterialSlotFrame(GuiGraphicsExtractor graphics, int left, int top) {
+        renderSlotFrame(graphics, left + MATERIAL_CENTER_X - 9, top + ASSEMBLY_CENTER_Y - 9);
+    }
+
+    private static void renderSlotFrame(GuiGraphicsExtractor graphics, int x, int y) {
+        graphics.fill(x - 1, y - 1, x + 19, y + 19, 0xFF151719);
+        graphics.outline(x - 1, y - 1, 20, 20, 0xFF856539);
     }
 
     private int previewStyleId() {
         return this.selectedSymbols.isEmpty() ? 1 : this.selectedSymbols.getFirst().id();
     }
 
-    private int valueFor(Kingdom.Metal metal) {
-        return switch (metal) {
-            case IRON -> this.display.ironValue();
-            case COPPER -> this.display.copperValue();
-            case GOLD -> this.display.goldValue();
-        };
-    }
-
-    private Component symbolAt(int index) {
-        return this.selectedSymbols.size() > index ? symbolName(this.selectedSymbols.get(index)) : gui("empty_slot");
+    private Symbol symbolAt(int index) {
+        return this.selectedSymbols.size() > index ? this.selectedSymbols.get(index) : null;
     }
 
     private static int metalId(Kingdom.Metal metal) {
@@ -298,6 +336,14 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         );
     }
 
+    private static Identifier coinTexture(Kingdom.Metal metal, int styleId) {
+        Symbol style = Symbol.byId(styleId);
+        return Identifier.fromNamespaceAndPath(
+            CrownsCoins.MOD_ID,
+            "textures/item/coin/%s_%02d_%s.png".formatted(coinMetalName(metal), style.id(), style.name().toLowerCase(Locale.ROOT))
+        );
+    }
+
     private static String catalogMetalName(Kingdom.Metal metal) {
         return switch (metal) {
             case COPPER -> "bronze";
@@ -306,11 +352,18 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         };
     }
 
-    private static Identifier crestTexture(KingdomCrest crest) {
-        Symbol symbol = crest.symbol();
+    private static String coinMetalName(Kingdom.Metal metal) {
+        return switch (metal) {
+            case COPPER -> "copper";
+            case IRON -> "iron";
+            case GOLD -> "gold";
+        };
+    }
+
+    private static Identifier crestTexture(Symbol crest) {
         return Identifier.fromNamespaceAndPath(
             CrownsCoins.MOD_ID,
-            "textures/item/overlay/crest/%02d_%s.png".formatted(symbol.id(), symbol.name().toLowerCase(Locale.ROOT))
+            "textures/item/overlay/crest/%02d_%s.png".formatted(crest.id(), crest.name().toLowerCase(Locale.ROOT))
         );
     }
 
@@ -334,8 +387,5 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     }
 
     private record CatalogTile(Button button, Kingdom.Metal metal, Symbol symbol, int x, int y) {
-    }
-
-    private record CrestTile(Button button, KingdomCrest crest, int x, int y) {
     }
 }

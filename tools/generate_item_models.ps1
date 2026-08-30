@@ -53,7 +53,7 @@ foreach ($metal in @('iron', 'copper', 'gold')) {
     }
 }
 
-foreach ($kind in @('crest', 'symbol')) {
+foreach ($kind in @('crest', 'crest_center', 'symbol', 'symbol_left', 'symbol_right', 'symbol_bottom')) {
     for ($index = 0; $index -lt $SymbolNames.Count; $index++) {
         $id = $index + 1
         $name = ('{0:D2}_{1}' -f $id, $SymbolNames[$index])
@@ -74,13 +74,13 @@ foreach ($metal in @('iron', 'copper', 'gold')) {
         type = 'minecraft:composite'
         models = @(
             (Select-Model "${Namespace}:coin_style" "${Namespace}:item/coin/$metal`_01_sun" "coin/$metal`_"),
-            (Select-Model "${Namespace}:coin_crest" "${Namespace}:item/overlay/blank" 'overlay/crest/'),
-            (Select-Model "${Namespace}:coin_symbol_one" "${Namespace}:item/overlay/blank" 'overlay/symbol/'),
-            (Select-Model "${Namespace}:coin_symbol_two" "${Namespace}:item/overlay/blank" 'overlay/symbol/'),
-            (Select-Model "${Namespace}:coin_symbol_three" "${Namespace}:item/overlay/blank" 'overlay/symbol/')
+            (Select-Model "${Namespace}:coin_crest" "${Namespace}:item/overlay/blank" 'overlay/crest_center/'),
+            (Select-Model "${Namespace}:coin_symbol_one" "${Namespace}:item/overlay/blank" 'overlay/symbol_left/'),
+            (Select-Model "${Namespace}:coin_symbol_two" "${Namespace}:item/overlay/blank" 'overlay/symbol_right/'),
+            (Select-Model "${Namespace}:coin_symbol_three" "${Namespace}:item/overlay/blank" 'overlay/symbol_bottom/')
         )
     }
     Write-Json (Join-Path $ItemRoot "$metal`_coin.json") ([ordered]@{ model = $model })
 }
 
-Write-Output "Generated 75 base item models, 51 overlay models, and 3 modern composite item definitions."
+Write-Output "Generated 75 base item models, 151 overlay models, and 3 modern composite item definitions."

@@ -7,7 +7,7 @@ $ErrorActionPreference = 'Stop'
 
 Add-Type -AssemblyName System.Drawing
 
-$targetPath = Join-Path $PSScriptRoot '..\src\main\resources\assets\crownscoins\textures\gui\mint_house_menu.png'
+$targetPath = Join-Path $PSScriptRoot '..\src\main\resources\assets\crownscoins\textures\gui\mint_house_workbench.png'
 $targetDirectory = Split-Path -Parent $targetPath
 New-Item -ItemType Directory -Force -Path $targetDirectory | Out-Null
 

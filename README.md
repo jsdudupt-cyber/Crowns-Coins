@@ -22,7 +22,7 @@ Um mod de reinos e moedas para Minecraft. Crie seu reino, escolha um dos 10 bras
 3. Se ainda não fizer parte de um reino, preencha o nome do reino, a moeda, os valores e escolha um dos 10 brasões.
 4. Com a Casa da Moeda vinculada, escolha bronze, ferro ou ouro em seu painel de 25 símbolos; ao trocar de painel, as escolhas laterais são limpas.
 5. Preencha os dois espaços de símbolo, confira a prévia e confirme a cunhagem. O brasão central é obrigatório e sempre vem do reino.
-6. Tenha um lingote correspondente no inventário. O mod consome um lingote e entrega uma moeda personalizada.
+6. Arraste o lingote correspondente do seu inventário para o encaixe redondo de **LINGOTE**. O mod consome um lingote desse espaço e entrega a moeda personalizada no seu inventário; ao fechar a mesa, qualquer lingote restante volta para você.
 
 Todas as regras importantes são verificadas pelo servidor: reino, vinculação da Casa da Moeda, distância, brasão, metal, os dois símbolos e lingote.
 

@@ -56,7 +56,7 @@ public final class MintHouseBlock extends BaseEntityBlock {
             boundKingdom = existing.get();
         }
         serverPlayer.openMenu(
-            new SimpleMenuProvider((id, inventory, ignored) -> new MintHouseMenu(id, serverLevel, pos), Component.translatable("menu.crownscoins.mint")),
+            new SimpleMenuProvider((id, inventory, ignored) -> new MintHouseMenu(id, inventory, serverLevel, pos), Component.translatable("menu.crownscoins.mint")),
             buffer -> {
                 buffer.writeBlockPos(pos);
                 buffer.writeUtf(boundKingdom.name(), Kingdom.MAX_KINGDOM_NAME_LENGTH);

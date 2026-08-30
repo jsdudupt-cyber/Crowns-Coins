@@ -19,7 +19,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.core.component.DataComponents;
@@ -36,11 +40,22 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements NetworkHa
     public static final int IRON_METAL_ID = 1;
     public static final int COPPER_METAL_ID = 2;
     public static final int GOLD_METAL_ID = 3;
-    private final ClientMintData clientData;
+    private static final int MATERIAL_SLOT = 0;
+    private static final int PLAYER_SLOT_START = MATERIAL_SLOT + 1;
+    private static final int PLAYER_MAIN_END = PLAYER_SLOT_START + 27;
+    private static final int PLAYER_SLOT_END = PLAYER_MAIN_END + 9;
+    private static final int MATERIAL_SLOT_X = 311;
+    private static final int MATERIAL_SLOT_Y = 227;
+    private static final int PLAYER_INVENTORY_X = 271;
+    private static final int PLAYER_INVENTORY_Y = 348;
 
-    /** Convenience constructor for server opening before a MenuType is registered. */
-    public MintHouseMenu(int containerId, ServerLevel level, BlockPos mintHousePos) {
-        this(CrownsCoins.MINT_HOUSE_MENU.get(), containerId, level.dimension(), mintHousePos, ClientMintData.empty());
+    private final ClientMintData clientData;
+    /** One temporary input slot, returned to its owner like a vanilla crafting grid. */
+    private final Container materialSlot;
+
+    /** Server constructor. The player inventory remains fully usable while minting. */
+    public MintHouseMenu(int containerId, Inventory inventory, ServerLevel level, BlockPos mintHousePos) {
+        this(CrownsCoins.MINT_HOUSE_MENU.get(), containerId, inventory, level.dimension(), mintHousePos, ClientMintData.empty());
     }
 
     /** Client factory; authoritative state remains in the corresponding server menu. */
@@ -48,19 +63,31 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements NetworkHa
         this(
             CrownsCoins.MINT_HOUSE_MENU.get(),
             containerId,
+            inventory,
             inventory.player.level().dimension(),
             data.readBlockPos(),
             new ClientMintData(data.readUtf(Kingdom.MAX_KINGDOM_NAME_LENGTH), Symbol.byId(data.readVarInt()), data.readVarInt(), data.readVarInt(), data.readVarInt())
         );
     }
 
-    public MintHouseMenu(MenuType<?> menuType, int containerId, ResourceKey<Level> dimension, BlockPos mintHousePos) {
-        this(menuType, containerId, dimension, mintHousePos, ClientMintData.empty());
-    }
-
-    public MintHouseMenu(MenuType<?> menuType, int containerId, ResourceKey<Level> dimension, BlockPos mintHousePos, ClientMintData clientData) {
+    private MintHouseMenu(
+        MenuType<?> menuType,
+        int containerId,
+        Inventory inventory,
+        ResourceKey<Level> dimension,
+        BlockPos mintHousePos,
+        ClientMintData clientData
+    ) {
         super(menuType, containerId, dimension, mintHousePos);
         this.clientData = clientData;
+        this.materialSlot = new SimpleContainer(1);
+        this.addSlot(new Slot(this.materialSlot, MATERIAL_SLOT, MATERIAL_SLOT_X, MATERIAL_SLOT_Y) {
+            @Override
+            public boolean mayPlace(ItemStack stack) {
+                return isMintingIngot(stack);
+            }
+        });
+        this.addStandardInventorySlots(inventory, PLAYER_INVENTORY_X, PLAYER_INVENTORY_Y);
     }
 
     /** Server-authored display data only; never used to authorize minting. */
@@ -68,10 +95,50 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements NetworkHa
         return clientData;
     }
 
-    /** This UI owns no inventory slots; the later mint action uses the player's inventory directly. */
+    /** Returns whether the visible input slot contains the matching metal ingot. */
+    public boolean hasMaterialFor(Kingdom.Metal metal) {
+        return this.materialSlot.getItem(MATERIAL_SLOT).is(ingotFor(metal));
+    }
+
+    /** Moves shift-clicked stacks between the ingredient slot and the real player inventory. */
     @Override
-    public ItemStack quickMoveStack(net.minecraft.world.entity.player.Player player, int slotIndex) {
-        return ItemStack.EMPTY;
+    public ItemStack quickMoveStack(Player player, int slotIndex) {
+        if (slotIndex < 0 || slotIndex >= this.slots.size()) {
+            return ItemStack.EMPTY;
+        }
+
+        Slot slot = this.slots.get(slotIndex);
+        if (!slot.hasItem()) {
+            return ItemStack.EMPTY;
+        }
+
+        ItemStack stack = slot.getItem();
+        ItemStack result = stack.copy();
+        boolean moved;
+        if (slotIndex == MATERIAL_SLOT) {
+            moved = this.moveItemStackTo(stack, PLAYER_SLOT_START, PLAYER_SLOT_END, true);
+        } else if (isMintingIngot(stack)) {
+            moved = this.moveItemStackTo(stack, MATERIAL_SLOT, MATERIAL_SLOT + 1, false);
+            if (!moved) {
+                moved = moveBetweenPlayerRows(stack, slotIndex);
+            }
+        } else {
+            moved = moveBetweenPlayerRows(stack, slotIndex);
+        }
+
+        if (!moved) {
+            return ItemStack.EMPTY;
+        }
+        if (stack.isEmpty()) {
+            slot.setByPlayer(ItemStack.EMPTY);
+        } else {
+            slot.setChanged();
+        }
+        if (stack.getCount() == result.getCount()) {
+            return ItemStack.EMPTY;
+        }
+        slot.onTake(player, stack);
+        return result;
     }
 
     /** Ensures the exact live Mint House is still bound to a real server kingdom. */
@@ -107,7 +174,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements NetworkHa
             return;
         }
 
-        if (!consumeOneIngot(player, validated.metal())) {
+        if (!consumeInputIngot(validated.metal())) {
             player.sendSystemMessage(Component.translatable("message.crownscoins.missing_ingot"));
             return;
         }
@@ -206,21 +273,43 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements NetworkHa
         return coin;
     }
 
-    private static boolean consumeOneIngot(ServerPlayer player, Kingdom.Metal metal) {
-        Item requiredIngot = switch (metal) {
+    @Override
+    public void removed(Player player) {
+        super.removed(player);
+        this.clearContainer(player, this.materialSlot);
+    }
+
+    private boolean consumeInputIngot(Kingdom.Metal metal) {
+        ItemStack stack = this.materialSlot.getItem(MATERIAL_SLOT);
+        if (!stack.is(ingotFor(metal))) {
+            return false;
+        }
+        stack.shrink(1);
+        if (stack.isEmpty()) {
+            this.materialSlot.setItem(MATERIAL_SLOT, ItemStack.EMPTY);
+        } else {
+            this.materialSlot.setChanged();
+        }
+        return true;
+    }
+
+    private boolean moveBetweenPlayerRows(ItemStack stack, int slotIndex) {
+        if (slotIndex < PLAYER_MAIN_END) {
+            return this.moveItemStackTo(stack, PLAYER_MAIN_END, PLAYER_SLOT_END, false);
+        }
+        return this.moveItemStackTo(stack, PLAYER_SLOT_START, PLAYER_MAIN_END, false);
+    }
+
+    private static boolean isMintingIngot(ItemStack stack) {
+        return stack.is(Items.IRON_INGOT) || stack.is(Items.COPPER_INGOT) || stack.is(Items.GOLD_INGOT);
+    }
+
+    private static Item ingotFor(Kingdom.Metal metal) {
+        return switch (metal) {
             case IRON -> Items.IRON_INGOT;
             case COPPER -> Items.COPPER_INGOT;
             case GOLD -> Items.GOLD_INGOT;
         };
-        for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
-            ItemStack stack = player.getInventory().getItem(slot);
-            if (stack.is(requiredIngot)) {
-                stack.shrink(1);
-                player.getInventory().setChanged();
-                return true;
-            }
-        }
-        return false;
     }
 
     private static Optional<Kingdom.Metal> metalById(int metalId) {
