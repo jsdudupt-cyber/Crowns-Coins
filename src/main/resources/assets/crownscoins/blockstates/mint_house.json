@@ -1,7 +1,8 @@
 {
   "variants": {
-    "": {
-      "model": "crownscoins:block/mint_house"
-    }
+    "facing=north": { "model": "crownscoins:block/mint_house" },
+    "facing=east": { "model": "crownscoins:block/mint_house", "y": 90 },
+    "facing=south": { "model": "crownscoins:block/mint_house", "y": 180 },
+    "facing=west": { "model": "crownscoins:block/mint_house", "y": 270 }
   }
 }

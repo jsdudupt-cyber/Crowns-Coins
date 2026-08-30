@@ -261,8 +261,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
 
         Optional<Kingdom.Metal> metal = metalById(metalId);
         if (metal.isEmpty()
-            || styleId < 1
-            || styleId > CoinData.MAX_STYLE_ID
+            || styleId != Symbol.CROWN.id()
             || symbolIds == null
             || symbolIds.size() != CoinData.REQUIRED_SECONDARY_SYMBOLS
             || !KingdomCrest.isSupported(kingdom.get().crest())) {

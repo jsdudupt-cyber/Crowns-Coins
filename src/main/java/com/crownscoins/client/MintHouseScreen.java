@@ -348,13 +348,13 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         if (symbol != null) {
             graphics.blit(
                 RenderPipelines.GUI_TEXTURED,
-                catalogCoinTexture(this.selectedMetal, symbol),
-                centerX - 14,
-                centerY - 14,
+                symbolTexture(symbol),
+                centerX - 11,
+                centerY - 11,
                 0.0F,
                 0.0F,
-                28,
-                28,
+                22,
+                22,
                 32,
                 32,
                 32,
@@ -367,11 +367,13 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     }
 
     private void renderPreview(GuiGraphicsExtractor graphics, int left, int top) {
+        int previewX = left + PREVIEW_CENTER_X - 50;
+        int previewY = top + PREVIEW_CENTER_Y - 50;
         graphics.blit(
             RenderPipelines.GUI_TEXTURED,
             coinTexture(this.selectedMetal, previewStyleId()),
-            left + PREVIEW_CENTER_X - 50,
-            top + PREVIEW_CENTER_Y - 50,
+            previewX,
+            previewY,
             0.0F,
             0.0F,
             100,
@@ -381,37 +383,40 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
             32,
             32
         );
+        // Use the identical full-canvas overlays used by the item model.  That
+        // keeps the fixed kingdom crest centred and the two selected glyphs in
+        // their own small left/right spaces on every coin.
         graphics.blit(
             RenderPipelines.GUI_TEXTURED,
-            crestTexture(this.display.crest()),
-            left + PREVIEW_CENTER_X - 20,
-            top + PREVIEW_CENTER_Y - 20,
+            crestCenterTexture(this.display.crest()),
+            previewX,
+            previewY,
             0.0F,
             0.0F,
-            40,
-            40,
+            100,
+            100,
             32,
             32,
             32,
             32
         );
-        renderPreviewSideSymbol(graphics, left + PREVIEW_CENTER_X - 35, top + PREVIEW_CENTER_Y + 8, symbolAt(0));
-        renderPreviewSideSymbol(graphics, left + PREVIEW_CENTER_X + 13, top + PREVIEW_CENTER_Y + 8, symbolAt(1));
+        renderPreviewSideSymbol(graphics, previewX, previewY, symbolAt(0), true);
+        renderPreviewSideSymbol(graphics, previewX, previewY, symbolAt(1), false);
     }
 
-    private void renderPreviewSideSymbol(GuiGraphicsExtractor graphics, int x, int y, Symbol symbol) {
+    private void renderPreviewSideSymbol(GuiGraphicsExtractor graphics, int x, int y, Symbol symbol, boolean leftSide) {
         if (symbol == null) {
             return;
         }
         graphics.blit(
             RenderPipelines.GUI_TEXTURED,
-            catalogCoinTexture(this.selectedMetal, symbol),
+            leftSide ? symbolLeftTexture(symbol) : symbolRightTexture(symbol),
             x,
             y,
             0.0F,
             0.0F,
-            22,
-            22,
+            100,
+            100,
             32,
             32,
             32,
@@ -444,7 +449,9 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     }
 
     private int previewStyleId() {
-        return this.selectedSymbols.isEmpty() ? Symbol.CROWN.id() : this.selectedSymbols.getFirst().id();
+        // New currency always uses the crown die as its neutral coin base.
+        // The realm crest and exactly two selections provide its identity.
+        return Symbol.CROWN.id();
     }
 
     private Symbol symbolAt(int index) {
@@ -502,10 +509,31 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         };
     }
 
-    private static Identifier crestTexture(Symbol crest) {
+    private static Identifier crestCenterTexture(Symbol crest) {
         return Identifier.fromNamespaceAndPath(
             CrownsCoins.MOD_ID,
-            "textures/item/overlay/crest/%02d_%s.png".formatted(crest.id(), crest.name().toLowerCase(Locale.ROOT))
+            "textures/item/overlay/crest_center/%02d_%s.png".formatted(crest.id(), crest.name().toLowerCase(Locale.ROOT))
+        );
+    }
+
+    private static Identifier symbolTexture(Symbol symbol) {
+        return Identifier.fromNamespaceAndPath(
+            CrownsCoins.MOD_ID,
+            "textures/item/overlay/symbol/%02d_%s.png".formatted(symbol.id(), symbol.name().toLowerCase(Locale.ROOT))
+        );
+    }
+
+    private static Identifier symbolLeftTexture(Symbol symbol) {
+        return Identifier.fromNamespaceAndPath(
+            CrownsCoins.MOD_ID,
+            "textures/item/overlay/symbol_left/%02d_%s.png".formatted(symbol.id(), symbol.name().toLowerCase(Locale.ROOT))
+        );
+    }
+
+    private static Identifier symbolRightTexture(Symbol symbol) {
+        return Identifier.fromNamespaceAndPath(
+            CrownsCoins.MOD_ID,
+            "textures/item/overlay/symbol_right/%02d_%s.png".formatted(symbol.id(), symbol.name().toLowerCase(Locale.ROOT))
         );
     }
 
