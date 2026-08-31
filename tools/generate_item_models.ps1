@@ -88,15 +88,20 @@ Write-Json (Join-Path $ModelRoot 'overlay/blank.json') ([ordered]@{
     textures = [ordered]@{ layer0 = "${Namespace}:item/overlay/blank" }
 })
 
+Write-Json (Join-Path $ModelRoot 'overlay/steve_face.json') ([ordered]@{
+    parent = 'minecraft:item/generated'
+    textures = [ordered]@{ layer0 = "${Namespace}:item/overlay/steve_face" }
+})
+
 foreach ($metal in @('iron', 'copper', 'gold')) {
     $model = [ordered]@{
         type = 'minecraft:composite'
         models = @(
-            # The coin face and its centre crest are rendered separately. The
-            # third native string selects the owning kingdom's crest; using a
-            # Crown fallback keeps stacks from earlier saves readable.
+            # Every denomination shares Steve's face as its fixed, visible
+            # centre mark. Kingdom crest data remains on the stack for realm
+            # identity and tooltips, but does not alter this principal symbol.
             (Model-Reference "${Namespace}:item/coin/$metal`_04_crown"),
-            (Select-CustomModelDataSymbol 2 "${Namespace}:item/overlay/crest_center/04_crown" 'overlay/crest_center/'),
+            (Model-Reference "${Namespace}:item/overlay/steve_face"),
             # New minted coins store their two choices in the vanilla
             # custom_model_data component before the kingdom crest string.
             # Native selectors avoid the custom selector fallback that left

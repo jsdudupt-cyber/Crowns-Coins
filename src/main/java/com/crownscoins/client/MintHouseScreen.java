@@ -550,11 +550,11 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
             32,
             32
         );
-        // The kingdom crest is locked into the centre of every coin. The two
-        // independent choices are rendered both inside the coin and in badges.
+        // Steve's face is the shared principal mark on every coin. The
+        // kingdom crest remains stored on the coin for realm identity.
         graphics.blit(
             RenderPipelines.GUI_TEXTURED,
-            crestCenterTexture(this.display.crest()),
+            steveFaceTexture(),
             previewX,
             previewY,
             0.0F,
@@ -570,7 +570,7 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         renderPreviewSideSymbol(graphics, previewX, previewY, symbolAt(1), false);
 
         renderChoiceBadge(graphics, left + LEFT_SYMBOL_CENTER_X, top + CHOICE_CENTER_Y, gui("left_symbol"), symbolAt(0));
-        renderCrestBadge(graphics, left + PREVIEW_CENTER_X, top + CHOICE_CENTER_Y, this.display.crest());
+        renderSteveFaceBadge(graphics, left + PREVIEW_CENTER_X, top + CHOICE_CENTER_Y);
         renderChoiceBadge(graphics, left + RIGHT_SYMBOL_CENTER_X, top + CHOICE_CENTER_Y, gui("right_symbol"), symbolAt(1));
         graphics.centeredText(this.font, gui("coin_formula"), left + PREVIEW_CENTER_X, top + 348, TEXT);
     }
@@ -601,14 +601,14 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         graphics.centeredText(this.font, label, centerX, centerY + 25, GOLD);
     }
 
-    private void renderCrestBadge(GuiGraphicsExtractor graphics, int centerX, int centerY, Symbol crest) {
+    private void renderSteveFaceBadge(GuiGraphicsExtractor graphics, int centerX, int centerY) {
         int x = centerX - 20;
         int y = centerY - 20;
         graphics.fill(x + 2, y + 2, x + 38, y + 38, 0x301F1B13);
         graphics.outline(x, y, 40, 40, GOLD_DARK);
         graphics.blit(
             RenderPipelines.GUI_TEXTURED,
-            crestCenterTexture(crest),
+            steveFaceTexture(),
             centerX - 14,
             centerY - 14,
             0.0F,
@@ -620,7 +620,7 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
             32,
             32
         );
-        graphics.centeredText(this.font, crestName(crest), centerX, centerY + 25, GOLD);
+        graphics.centeredText(this.font, gui("steve_face"), centerX, centerY + 25, GOLD);
     }
 
     private void renderPreviewSideSymbol(GuiGraphicsExtractor graphics, int x, int y, Symbol symbol, boolean leftSide) {
@@ -808,6 +808,10 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
             CrownsCoins.MOD_ID,
             "textures/item/overlay/crest_center/%02d_%s.png".formatted(crest.id(), crest.name().toLowerCase(Locale.ROOT))
         );
+    }
+
+    private static Identifier steveFaceTexture() {
+        return Identifier.fromNamespaceAndPath(CrownsCoins.MOD_ID, "textures/item/overlay/steve_face.png");
     }
 
     private static Identifier symbolTexture(Symbol symbol) {

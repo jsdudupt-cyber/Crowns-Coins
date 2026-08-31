@@ -59,6 +59,24 @@ $CenterCrownPattern = @(
     '....####....'
 )
 
+# The principal coin mark is a deliberately compact, high-contrast Steve
+# face.  It stays clear at Minecraft's 16px inventory scale while preserving
+# room for the two player-selected side emblems.
+$SteveFacePattern = @(
+    'HHHHHHHHHHHH',
+    'HHHHHHHHHHHH',
+    'HHSSSSSSSSHH',
+    'HHSSSSSSSSHH',
+    'HHSSBBSSBBHH',
+    'HHSSBBSSBBHH',
+    'HHSSSSSSSSHH',
+    'HHSSSSSSSSHH',
+    'HHSSSMMSSSHH',
+    'HHSSSSSSSSHH',
+    'HHSSSSSSSSHH',
+    'HHHHHHHHHHHH'
+)
+
 $textureRoot = Join-Path $ResourceRoot 'assets/crownscoins/textures/item/overlay'
 $outlineColor = [System.Drawing.Color]::FromArgb(255, 54, 26, 10)
 $sideColor = [System.Drawing.Color]::FromArgb(255, 255, 244, 210)
@@ -113,6 +131,52 @@ function Write-PixelOverlay(
     }
 }
 
+function Write-SteveFaceOverlay([string]$TargetPath) {
+    Assert-Pattern 'Steve face' $SteveFacePattern 12 12
+    $target = [System.Drawing.Bitmap]::new(32, 32, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $hair = [System.Drawing.Color]::FromArgb(255, 72, 36, 18)
+    $skin = [System.Drawing.Color]::FromArgb(255, 194, 128, 76)
+    $eye = [System.Drawing.Color]::FromArgb(255, 58, 99, 186)
+    $mouth = [System.Drawing.Color]::FromArgb(255, 102, 55, 36)
+    try {
+        # The contour makes the face legible on every metal, including gold.
+        for ($row = 0; $row -lt $SteveFacePattern.Count; $row++) {
+            for ($column = 0; $column -lt $SteveFacePattern[$row].Length; $column++) {
+                if ($SteveFacePattern[$row][$column] -eq '.') {
+                    continue
+                }
+                for ($offsetY = -1; $offsetY -le 1; $offsetY++) {
+                    for ($offsetX = -1; $offsetX -le 1; $offsetX++) {
+                        $x = 10 + $column + $offsetX
+                        $y = 10 + $row + $offsetY
+                        if ($x -ge 0 -and $x -lt 32 -and $y -ge 0 -and $y -lt 32) {
+                            $target.SetPixel($x, $y, $outlineColor)
+                        }
+                    }
+                }
+            }
+        }
+        for ($row = 0; $row -lt $SteveFacePattern.Count; $row++) {
+            for ($column = 0; $column -lt $SteveFacePattern[$row].Length; $column++) {
+                $color = switch ($SteveFacePattern[$row][$column]) {
+                    'H' { $hair }
+                    'S' { $skin }
+                    'B' { $eye }
+                    'M' { $mouth }
+                    default { $null }
+                }
+                if ($null -ne $color) {
+                    $target.SetPixel(10 + $column, 10 + $row, $color)
+                }
+            }
+        }
+        [void][System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($TargetPath))
+        $target.Save($TargetPath, [System.Drawing.Imaging.ImageFormat]::Png)
+    } finally {
+        $target.Dispose()
+    }
+}
+
 foreach ($name in $SymbolNames) {
     $pattern = [string[]]$SidePatterns[$name]
     Assert-Pattern $name $pattern 7 7
@@ -134,4 +198,6 @@ foreach ($name in $SymbolNames) {
     Write-PixelOverlay $pattern (Join-Path $textureRoot "symbol_bottom/$fileName") 13 22 $sideColor
 }
 
-Write-Output "Generated high-contrast Crown and secondary-symbol overlays under $textureRoot"
+Write-SteveFaceOverlay (Join-Path $textureRoot 'steve_face.png')
+
+Write-Output "Generated the Steve coin-face mark and high-contrast secondary-symbol overlays under $textureRoot"
