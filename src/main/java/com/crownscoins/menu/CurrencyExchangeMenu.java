@@ -233,17 +233,29 @@ public final class CurrencyExchangeMenu extends AbstractContainerMenu {
             original.styleId(),
             original.symbols()
         ));
-        // The item renderer uses these native strings for the two visible side
-        // symbols. Rebuild them from CoinData so a converted coin keeps the
-        // complete face even when the source was minted before this renderer.
+        // The item renderer uses these native strings for both visible side
+        // symbols and the permanent kingdom centre crest. Rebuild all three
+        // values from CoinData so conversion repairs stacks minted by older
+        // renderer versions that did not carry the crest string.
         output.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(
             List.of(),
             List.of(),
-            original.symbols().stream().map(symbol -> symbol.name().toLowerCase(Locale.ROOT)).toList(),
+            List.of(
+                modelSymbolName(original, 0),
+                modelSymbolName(original, 1),
+                original.kingdomCrest().name().toLowerCase(Locale.ROOT)
+            ),
             List.of()
         ));
         output.set(DataComponents.CUSTOM_NAME, Component.literal(original.currencyName()));
         return output;
+    }
+
+    /** Keeps legacy valid coins convertible even if they predate the two side-symbol rule. */
+    private static String modelSymbolName(CoinData data, int index) {
+        return data.symbols().size() > index
+            ? data.symbols().get(index).name().toLowerCase(Locale.ROOT)
+            : "blank";
     }
 
     private static ItemStack meltOutputFor(ItemStack source) {

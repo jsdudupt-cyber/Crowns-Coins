@@ -92,13 +92,15 @@ foreach ($metal in @('iron', 'copper', 'gold')) {
     $model = [ordered]@{
         type = 'minecraft:composite'
         models = @(
-            # The permanent Crown is not a select property: it must always be
-            # drawn, including on a stack restored from an older world save.
+            # The coin face and its centre crest are rendered separately. The
+            # third native string selects the owning kingdom's crest; using a
+            # Crown fallback keeps stacks from earlier saves readable.
             (Model-Reference "${Namespace}:item/coin/$metal`_04_crown"),
-            (Model-Reference "${Namespace}:item/overlay/crest_center/04_crown"),
+            (Select-CustomModelDataSymbol 2 "${Namespace}:item/overlay/crest_center/04_crown" 'overlay/crest_center/'),
             # New minted coins store their two choices in the vanilla
-            # custom_model_data component.  Native selectors avoid the custom
-            # selector fallback that left real minted stacks visually blank.
+            # custom_model_data component before the kingdom crest string.
+            # Native selectors avoid the custom selector fallback that left
+            # real minted stacks visually blank.
             (Select-CustomModelDataSymbol 0 "${Namespace}:item/overlay/blank" 'overlay/symbol_left/'),
             (Select-CustomModelDataSymbol 1 "${Namespace}:item/overlay/blank" 'overlay/symbol_right/')
         )

@@ -7,8 +7,190 @@
         "model": "crownscoins:item/coin/iron_04_crown"
       },
       {
-        "type": "minecraft:model",
-        "model": "crownscoins:item/overlay/crest_center/04_crown"
+        "type": "minecraft:select",
+        "property": "minecraft:custom_model_data",
+        "index": 2,
+        "fallback": {
+          "type": "minecraft:model",
+          "model": "crownscoins:item/overlay/crest_center/04_crown"
+        },
+        "cases": [
+          {
+            "when": "sun",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/01_sun"
+            }
+          },
+          {
+            "when": "moon",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/02_moon"
+            }
+          },
+          {
+            "when": "star",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/03_star"
+            }
+          },
+          {
+            "when": "crown",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/04_crown"
+            }
+          },
+          {
+            "when": "sword",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/05_sword"
+            }
+          },
+          {
+            "when": "shield",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/06_shield"
+            }
+          },
+          {
+            "when": "tower",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/07_tower"
+            }
+          },
+          {
+            "when": "dragon",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/08_dragon"
+            }
+          },
+          {
+            "when": "wolf",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/09_wolf"
+            }
+          },
+          {
+            "when": "eagle",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/10_eagle"
+            }
+          },
+          {
+            "when": "lion",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/11_lion"
+            }
+          },
+          {
+            "when": "horse",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/12_horse"
+            }
+          },
+          {
+            "when": "hammer",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/13_hammer"
+            }
+          },
+          {
+            "when": "anvil",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/14_anvil"
+            }
+          },
+          {
+            "when": "heart",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/15_heart"
+            }
+          },
+          {
+            "when": "flame",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/16_flame"
+            }
+          },
+          {
+            "when": "wave",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/17_wave"
+            }
+          },
+          {
+            "when": "leaf",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/18_leaf"
+            }
+          },
+          {
+            "when": "flower",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/19_flower"
+            }
+          },
+          {
+            "when": "diamond",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/20_diamond"
+            }
+          },
+          {
+            "when": "mountain",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/21_mountain"
+            }
+          },
+          {
+            "when": "river",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/22_river"
+            }
+          },
+          {
+            "when": "cross",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/23_cross"
+            }
+          },
+          {
+            "when": "lightning",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/24_lightning"
+            }
+          },
+          {
+            "when": "compass",
+            "model": {
+              "type": "minecraft:model",
+              "model": "crownscoins:item/overlay/crest_center/25_compass"
+            }
+          }
+        ]
       },
       {
         "type": "minecraft:select",

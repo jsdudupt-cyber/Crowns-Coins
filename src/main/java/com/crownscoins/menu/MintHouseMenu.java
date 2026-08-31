@@ -45,18 +45,29 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
     public static final int IRON_METAL_ID = 1;
     public static final int COPPER_METAL_ID = 2;
     public static final int GOLD_METAL_ID = 3;
+    /** Every supported metal uses the same production rule: one ingot yields one coin. */
+    public static final int INGOTS_PER_COIN = 1;
     private static final int MATERIAL_SLOT = 0;
-    private static final int PLAYER_SLOT_START = MATERIAL_SLOT + 1;
+    private static final int COIN_STORAGE_SLOT_START = MATERIAL_SLOT + 1;
+    private static final int COIN_STORAGE_SLOT_END = COIN_STORAGE_SLOT_START + MintHouseBlockEntity.COIN_STORAGE_SLOTS;
+    private static final int PLAYER_SLOT_START = COIN_STORAGE_SLOT_END;
     private static final int PLAYER_MAIN_END = PLAYER_SLOT_START + 27;
     private static final int PLAYER_SLOT_END = PLAYER_MAIN_END + 9;
-    private static final int MATERIAL_SLOT_X = 311;
-    private static final int MATERIAL_SLOT_Y = 227;
-    private static final int PLAYER_INVENTORY_X = 271;
-    private static final int PLAYER_INVENTORY_Y = 348;
+    // These locations match the three lower panels in the Mint House artwork:
+    // player inventory on the left, coin chest in the centre, action panel right.
+    private static final int MATERIAL_SLOT_X = 45;
+    private static final int MATERIAL_SLOT_Y = 334;
+    private static final int COIN_STORAGE_X = 268;
+    private static final int COIN_STORAGE_Y = 422;
+    private static final int PLAYER_INVENTORY_X = 24;
+    private static final int PLAYER_INVENTORY_Y = 422;
+    private static final int PLAYER_HOTBAR_Y = 482;
 
     private final ClientMintData clientData;
     /** One temporary input slot, returned to its owner like a vanilla crafting grid. */
     private final Container materialSlot;
+    /** Persistent 27-slot coin chest held by the exact Mint House block entity. */
+    private final Container coinStorage;
 
     /** Server constructor. The player inventory remains fully usable while minting. */
     public MintHouseMenu(int containerId, Inventory inventory, ServerLevel level, BlockPos mintHousePos) {
@@ -94,13 +105,25 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         super(menuType, containerId, dimension, mintHousePos);
         this.clientData = clientData;
         this.materialSlot = new SimpleContainer(1);
+        this.coinStorage = coinStorageFor(inventory, mintHousePos);
         this.addSlot(new Slot(this.materialSlot, MATERIAL_SLOT, MATERIAL_SLOT_X, MATERIAL_SLOT_Y) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return isMintingIngot(stack);
             }
         });
-        this.addStandardInventorySlots(inventory, PLAYER_INVENTORY_X, PLAYER_INVENTORY_Y);
+        for (int slot = 0; slot < MintHouseBlockEntity.COIN_STORAGE_SLOTS; slot++) {
+            int column = slot % 9;
+            int row = slot / 9;
+            this.addSlot(new CoinStorageSlot(
+                this.coinStorage,
+                slot,
+                COIN_STORAGE_X + column * 18,
+                COIN_STORAGE_Y + row * 18
+            ));
+        }
+        this.addInventoryExtendedSlots(inventory, PLAYER_INVENTORY_X, PLAYER_INVENTORY_Y);
+        this.addInventoryHotbarSlots(inventory, PLAYER_INVENTORY_X, PLAYER_HOTBAR_Y);
     }
 
     /** Server-authored display data only; never used to authorize minting. */
@@ -110,7 +133,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
 
     /** Returns whether the visible input slot contains the matching metal ingot. */
     public boolean hasMaterialFor(Kingdom.Metal metal) {
-        return materialCountFor(metal) > 0;
+        return mintableCoinCountFor(metal) > 0;
     }
 
     /**
@@ -123,7 +146,12 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         return stack.is(ingotFor(metal)) ? stack.getCount() : 0;
     }
 
-    /** Moves shift-clicked stacks between the ingredient slot and the real player inventory. */
+    /** Number of coins the live input can produce under the universal 1:1 rule. */
+    public int mintableCoinCountFor(Kingdom.Metal metal) {
+        return materialCountFor(metal) / INGOTS_PER_COIN;
+    }
+
+    /** Moves shift-clicked stacks among the ingredient socket, coin chest, and player inventory. */
     @Override
     public ItemStack quickMoveStack(Player player, int slotIndex) {
         if (slotIndex < 0 || slotIndex >= this.slots.size()) {
@@ -140,8 +168,15 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         boolean moved;
         if (slotIndex == MATERIAL_SLOT) {
             moved = this.moveItemStackTo(stack, PLAYER_SLOT_START, PLAYER_SLOT_END, true);
+        } else if (slotIndex >= COIN_STORAGE_SLOT_START && slotIndex < COIN_STORAGE_SLOT_END) {
+            moved = this.moveItemStackTo(stack, PLAYER_SLOT_START, PLAYER_SLOT_END, true);
         } else if (isMintingIngot(stack)) {
             moved = this.moveItemStackTo(stack, MATERIAL_SLOT, MATERIAL_SLOT + 1, false);
+            if (!moved) {
+                moved = moveBetweenPlayerRows(stack, slotIndex);
+            }
+        } else if (MintHouseBlockEntity.acceptsCoin(stack)) {
+            moved = this.moveItemStackTo(stack, COIN_STORAGE_SLOT_START, COIN_STORAGE_SLOT_END, false);
             if (!moved) {
                 moved = moveBetweenPlayerRows(stack, slotIndex);
             }
@@ -222,7 +257,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         }
 
         MintRequest validated = request.get();
-        int quantity = materialCountFor(validated.metal());
+        int quantity = mintableCoinCountFor(validated.metal());
         if (quantity <= 0) {
             player.sendSystemMessage(Component.translatable("message.crownscoins.missing_ingot"));
             return;
@@ -236,17 +271,23 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             return;
         }
 
-        if (!consumeInputIngots(validated.metal(), quantity)) {
+        int requiredIngots = quantity * INGOTS_PER_COIN;
+        if (!consumeInputIngots(validated.metal(), requiredIngots)) {
             player.sendSystemMessage(Component.translatable("message.crownscoins.missing_ingot"));
             return;
         }
 
-        // Inventory#add may accept only part of a stack. It mutates the given
-        // stack into the remainder, so drop that remainder rather than relying
-        // on its boolean return value and silently losing minted coins.
-        player.getInventory().add(coin);
-        if (!coin.isEmpty()) {
-            player.drop(coin, false);
+        // The built-in chest is the first destination. If it is full, continue
+        // through the normal player inventory and finally drop the exact
+        // remainder. That gives every minted coin a safe destination.
+        ItemStack remaining = currentMintHouse(player)
+            .map(mintHouse -> mintHouse.storeCoins(coin))
+            .orElse(coin);
+        if (!remaining.isEmpty()) {
+            player.getInventory().add(remaining);
+        }
+        if (!remaining.isEmpty()) {
+            player.drop(remaining, false);
         }
         player.sendSystemMessage(Component.translatable(
             "message.crownscoins.coin_minted",
@@ -334,9 +375,9 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             kingdom.id(),
             kingdom.name(),
             kingdom.currencyName(),
-            // Coins use the Royal Crown as the shared, fixed centre mark.
-            // The kingdom still owns its separate crest and currency identity.
-            Symbol.CROWN,
+            // Every kingdom owns the permanent centre mark on its coins.
+            // The two packet-selected symbols remain the side decorations.
+            kingdom.crest(),
             material,
             kingdom.value(request.metal()),
             request.styleId(),
@@ -346,7 +387,13 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         coin.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(
             List.of(),
             List.of(),
-            request.symbols().stream().map(symbol -> symbol.name().toLowerCase(Locale.ROOT)).toList(),
+            // The generated item model reads these strings in this stable
+            // order: left symbol, right symbol, then kingdom centre crest.
+            List.of(
+                request.symbols().get(0).name().toLowerCase(Locale.ROOT),
+                request.symbols().get(1).name().toLowerCase(Locale.ROOT),
+                kingdom.crest().name().toLowerCase(Locale.ROOT)
+            ),
             List.of()
         ));
         coin.set(DataComponents.CUSTOM_NAME, Component.literal(kingdom.currencyName()));
@@ -379,6 +426,30 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             return this.moveItemStackTo(stack, PLAYER_MAIN_END, PLAYER_SLOT_END, false);
         }
         return this.moveItemStackTo(stack, PLAYER_SLOT_START, PLAYER_MAIN_END, false);
+    }
+
+    /**
+     * The server always resolves the live block entity. The client may receive
+     * the menu before its local block entity reaches the render world, so it
+     * gets an equal-size placeholder which is immediately filled by menu slot
+     * synchronization. Both sides therefore always expose exactly 64 slots.
+     */
+    private static Container coinStorageFor(Inventory inventory, BlockPos mintHousePos) {
+        return inventory.player.level().getBlockEntity(mintHousePos) instanceof MintHouseBlockEntity mintHouse
+            ? mintHouse
+            : new SimpleContainer(MintHouseBlockEntity.COIN_STORAGE_SLOTS);
+    }
+
+    /** A normal chest slot, restricted to the three currency denominations. */
+    private static final class CoinStorageSlot extends Slot {
+        private CoinStorageSlot(Container container, int index, int x, int y) {
+            super(container, index, x, y);
+        }
+
+        @Override
+        public boolean mayPlace(ItemStack stack) {
+            return MintHouseBlockEntity.acceptsCoin(stack);
+        }
     }
 
     private static boolean isMintingIngot(ItemStack stack) {
