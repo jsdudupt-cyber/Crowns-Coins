@@ -94,23 +94,12 @@ Write-Json (Join-Path $ModelRoot 'overlay/steve_face.json') ([ordered]@{
 })
 
 foreach ($metal in @('iron', 'copper', 'gold')) {
-    $model = [ordered]@{
-        type = 'minecraft:composite'
-        models = @(
-            # Every denomination shares Steve's face as its fixed, visible
-            # centre mark. Kingdom crest data remains on the stack for realm
-            # identity and tooltips, but does not alter this principal symbol.
-            (Model-Reference "${Namespace}:item/coin/$metal`_04_crown"),
-            (Model-Reference "${Namespace}:item/overlay/steve_face"),
-            # New minted coins store their two choices in the vanilla
-            # custom_model_data component before the kingdom crest string.
-            # Native selectors avoid the custom selector fallback that left
-            # real minted stacks visually blank.
-            (Select-CustomModelDataSymbol 0 "${Namespace}:item/overlay/blank" 'overlay/symbol_left/'),
-            (Select-CustomModelDataSymbol 1 "${Namespace}:item/overlay/blank" 'overlay/symbol_right/')
-        )
-    }
+    # Coins deliberately stay visually neutral in inventories and in the
+    # world.  The minting screen is where the selected crest and symbols are
+    # displayed at a readable scale; layering them on a 16px item made every
+    # denomination look cluttered and could expose an unwanted face overlay.
+    $model = Model-Reference "${Namespace}:item/coin/$metal`_04_crown"
     Write-Json (Join-Path $ItemRoot "$metal`_coin.json") ([ordered]@{ model = $model })
 }
 
-Write-Output "Generated 75 base item models, 151 overlay models, and 3 modern composite item definitions."
+Write-Output "Generated 75 base item models, 151 overlay models, and 3 clean coin item definitions."

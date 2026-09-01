@@ -2,8 +2,8 @@ package com.crownscoins.menu;
 
 import com.crownscoins.CrownsCoins;
 import com.crownscoins.coin.CoinData;
+import com.crownscoins.kingdom.Symbol;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
@@ -20,16 +20,15 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.CustomModelData;
 import net.minecraft.world.level.Level;
 
 /**
  * Public, server-authoritative currency exchange.
  *
- * <p>A single stack can contain only one item-component value, which makes the
- * input naturally enforce the requirement that all coins come from the same
- * kingdom, currency, crown, style, and two side symbols. The result preserves
- * that identity and changes only its denomination material and value.</p>
+ * <p>A single stack can contain only one item-component value, so the input
+ * naturally enforces the requirement that all coins come from the same
+ * kingdom and currency. The result preserves that identity and changes only
+ * its denomination material and value.</p>
  */
 public final class CurrencyExchangeMenu extends AbstractContainerMenu {
     public static final int COPPER_TO_IRON_COUNT = 20;
@@ -230,32 +229,12 @@ public final class CurrencyExchangeMenu extends AbstractContainerMenu {
             original.kingdomCrest(),
             exchange.targetMaterial(),
             (int) targetValue,
-            original.styleId(),
-            original.symbols()
-        ));
-        // The item renderer uses these native strings for both visible side
-        // symbols and the permanent kingdom centre crest. Rebuild all three
-        // values from CoinData so conversion repairs stacks minted by older
-        // renderer versions that did not carry the crest string.
-        output.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(
-            List.of(),
-            List.of(),
-            List.of(
-                modelSymbolName(original, 0),
-                modelSymbolName(original, 1),
-                original.kingdomCrest().name().toLowerCase(Locale.ROOT)
-            ),
+            // Converted coins are normalized to the current clean-coin format.
+            Symbol.CROWN.id(),
             List.of()
         ));
         output.set(DataComponents.CUSTOM_NAME, Component.literal(original.currencyName()));
         return output;
-    }
-
-    /** Keeps legacy valid coins convertible even if they predate the two side-symbol rule. */
-    private static String modelSymbolName(CoinData data, int index) {
-        return data.symbols().size() > index
-            ? data.symbols().get(index).name().toLowerCase(Locale.ROOT)
-            : "blank";
     }
 
     private static ItemStack meltOutputFor(ItemStack source) {

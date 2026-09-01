@@ -7,7 +7,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 /** Common, dedicated-server-safe registration and dispatch for Crowns & Coins payloads. */
 public final class NetworkHandler {
-    public static final String NETWORK_VERSION = "2";
+    public static final String NETWORK_VERSION = "3";
 
     private NetworkHandler() {}
 

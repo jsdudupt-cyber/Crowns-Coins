@@ -10,13 +10,10 @@ import com.crownscoins.kingdom.Symbol;
 import com.crownscoins.network.MintCoinPayload;
 import com.crownscoins.network.NetworkHandler;
 import com.crownscoins.network.UpdateCurrencyNamePayload;
-import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
-import java.util.Set;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
@@ -28,16 +25,14 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.CustomModelData;
 import net.minecraft.world.level.Level;
 
 /**
  * Server-side state for minting at a bound Mint House. Its payload validator
- * accepts catalog IDs only and never changes a player's inventory.
+ * accepts a metal ID only and never changes a player's inventory.
  */
 public final class MintHouseMenu extends MintHouseBoundMenu implements
     NetworkHandler.MintCoinRequestHandler,
@@ -250,7 +245,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             return;
         }
 
-        Optional<MintRequest> request = validatePayload(player, payload.metalId(), payload.styleId(), payload.symbolIds());
+        Optional<MintRequest> request = validatePayload(player, payload.metalId());
         if (request.isEmpty()) {
             player.sendSystemMessage(Component.literal("Mint request was rejected."));
             return;
@@ -298,18 +293,16 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
 
     /**
      * Packet-handler entry point. It proves the exact Mint House menu is still open
-     * before processing client-selected metal/style/symbol IDs.
+     * before processing the client-selected metal ID.
      */
     public static Optional<MintRequest> validateCurrentPayload(
         ServerPlayer player,
-        int metalId,
-        int styleId,
-        List<Integer> symbolIds
+        int metalId
     ) {
         if (!(player.containerMenu instanceof MintHouseMenu menu)) {
             return Optional.empty();
         }
-        return menu.validatePayload(player, metalId, styleId, symbolIds);
+        return menu.validatePayload(player, metalId);
     }
 
     /**
@@ -317,7 +310,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
      * item. The caller must separately check and consume the corresponding ingot
      * after this method succeeds.
      */
-    public Optional<MintRequest> validatePayload(ServerPlayer player, int metalId, int styleId, List<Integer> symbolIds) {
+    public Optional<MintRequest> validatePayload(ServerPlayer player, int metalId) {
         Optional<MintHouseBlockEntity> mintHouse = currentMintHouse(player);
         if (mintHouse.isEmpty()) {
             return Optional.empty();
@@ -331,29 +324,11 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         }
 
         Optional<Kingdom.Metal> metal = metalById(metalId);
-        if (metal.isEmpty()
-            || styleId != Symbol.CROWN.id()
-            || symbolIds == null
-            || symbolIds.size() != CoinData.REQUIRED_SECONDARY_SYMBOLS
-            || !KingdomCrest.isSupported(kingdom.get().crest())) {
+        if (metal.isEmpty() || !KingdomCrest.isSupported(kingdom.get().crest())) {
             return Optional.empty();
         }
 
-        List<Symbol> symbols = new ArrayList<>(symbolIds.size());
-        Set<Symbol> seenSymbols = EnumSet.noneOf(Symbol.class);
-        try {
-            for (Integer symbolId : symbolIds) {
-                Symbol symbol = symbolId == null ? null : Symbol.byId(symbolId);
-                if (symbol == null || !seenSymbols.add(symbol)) {
-                    return Optional.empty();
-                }
-                symbols.add(symbol);
-            }
-        } catch (IllegalArgumentException ignored) {
-            return Optional.empty();
-        }
-
-        return Optional.of(new MintRequest(kingdom.get(), metal.get(), styleId, List.copyOf(symbols)));
+        return Optional.of(new MintRequest(kingdom.get(), metal.get()));
     }
 
     private static ItemStack createCoin(MintRequest request, int quantity) {
@@ -375,27 +350,15 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             kingdom.id(),
             kingdom.name(),
             kingdom.currencyName(),
-            // Every kingdom owns the permanent centre mark on its coins.
-            // The two packet-selected symbols remain the side decorations.
+            // Kingdom provenance remains part of the stored currency data even
+            // though the coin face itself is intentionally plain.
             kingdom.crest(),
             material,
             kingdom.value(request.metal()),
-            request.styleId(),
-            request.symbols()
+            Symbol.CROWN.id(),
+            List.of()
         );
         coin.set(CrownsCoins.COIN_DATA.get(), coinData);
-        coin.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(
-            List.of(),
-            List.of(),
-            // The generated item model reads these strings in this stable
-            // order: left symbol, right symbol, then kingdom centre crest.
-            List.of(
-                request.symbols().get(0).name().toLowerCase(Locale.ROOT),
-                request.symbols().get(1).name().toLowerCase(Locale.ROOT),
-                kingdom.crest().name().toLowerCase(Locale.ROOT)
-            ),
-            List.of()
-        ));
         coin.set(DataComponents.CUSTOM_NAME, Component.literal(kingdom.currencyName()));
         coin.setCount(quantity);
         return coin;
@@ -473,8 +436,8 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         };
     }
 
-    /** A server-validated mint intent. The two symbols preserve left/right catalog order. */
-    public record MintRequest(Kingdom kingdom, Kingdom.Metal metal, int styleId, List<Symbol> symbols) {
+    /** A server-validated mint intent containing only the kingdom and metal. */
+    public record MintRequest(Kingdom kingdom, Kingdom.Metal metal) {
     }
 
     /** Immutable snapshot written by the server while the menu opens. */

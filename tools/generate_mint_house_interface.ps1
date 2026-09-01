@@ -13,14 +13,14 @@ The high-resolution reference is intentionally text-free and icon-free: the
 screen supplies every label, item stack, selected symbol, currency name and
 button message at runtime.  This generator trims only the unused decorative
 side margin, keeping all three functional panels visible in the 4:3 Minecraft
-screen: metal cards, coin recess, catalogue cells, inventory areas and action
-panel.
+screen: metal cards, coin recess, a clean coin-preview field, inventory areas
+and action panel.
 
 Layout guides in the generated texture (all coordinates are local to 720x540):
   header       x 56..665, y 26..71
   metal panel  x   0..183, y 77..384
   preview      x 190..503, y 77..384
-  symbols      x 509..720, y 77..384
+  clean preview x 509..720, y 77..384
   inventory    x   0..240, y 393..527
   coin chest   x 248..498, y 393..527
   actions      x 504..720, y 393..527
@@ -31,9 +31,6 @@ Real interactive slots (the Java menu uses these exact 18px positions):
   hotbar       x  24, y 482 (9 columns)
   coin chest   x 268, y 422 (9 columns x 3 rows)
 
-Symbol catalogue controls:
-  metal tabs   x 508, 575, 642; y 90; 60 x 22
-  symbol grid  x 507, y 121 (5 columns x 5 rows; 36px tiles at 40px pitch)
 #>
 
 Set-StrictMode -Version Latest
@@ -116,51 +113,13 @@ function Draw-SlotGrid(
     }
 }
 
-function Draw-CatalogTile(
-    [System.Drawing.Graphics]$Graphics,
-    [int]$X,
-    [int]$Y,
-    [System.Drawing.Brush]$Outer,
-    [System.Drawing.Brush]$Inner,
-    [System.Drawing.Brush]$Face,
-    [System.Drawing.Brush]$Highlight,
-    [System.Drawing.Brush]$Shadow
-) {
-    # MintHouseScreen draws each 30px icon at (x + 3, y + 3).  The empty
-    # background therefore has a 36px tile with a 30px, icon-safe face.
-    $Graphics.FillRectangle($Outer, $X, $Y, 36, 36)
-    $Graphics.FillRectangle($Inner, $X + 1, $Y + 1, 34, 34)
-    $Graphics.FillRectangle($Highlight, $X + 1, $Y + 1, 33, 1)
-    $Graphics.FillRectangle($Highlight, $X + 1, $Y + 1, 1, 33)
-    $Graphics.FillRectangle($Shadow, $X + 1, $Y + 34, 34, 1)
-    $Graphics.FillRectangle($Shadow, $X + 34, $Y + 1, 1, 34)
-    $Graphics.FillRectangle($Face, $X + 3, $Y + 3, 30, 30)
-}
-
-function Draw-MetalTab(
-    [System.Drawing.Graphics]$Graphics,
-    [int]$X,
-    [int]$Y,
-    [System.Drawing.Brush]$Outer,
-    [System.Drawing.Brush]$Inner,
-    [System.Drawing.Brush]$Highlight,
-    [System.Drawing.Brush]$Shadow
-) {
-    $Graphics.FillRectangle($Outer, $X, $Y, 60, 22)
-    $Graphics.FillRectangle($Inner, $X + 1, $Y + 1, 58, 20)
-    $Graphics.FillRectangle($Highlight, $X + 1, $Y + 1, 57, 1)
-    $Graphics.FillRectangle($Highlight, $X + 1, $Y + 1, 1, 19)
-    $Graphics.FillRectangle($Shadow, $X + 1, $Y + 20, 58, 1)
-    $Graphics.FillRectangle($Shadow, $X + 58, $Y + 1, 1, 20)
-}
-
 $source = [System.Drawing.Bitmap]::FromFile((Resolve-Path -LiteralPath $SourceImage))
 try {
     $targetWidth = 720
     $targetHeight = 540
     # Keep the complete left, centre and right content panels.  The source
     # has a wide 3:2 presentation frame while Minecraft uses 4:3; trimming
-    # only its unused side ornaments avoids losing the fifth catalogue column.
+    # only its unused side ornaments preserves the full clean preview panel.
     $sideTrim = [int][Math]::Round($source.Width * 0.023)
     $cropWidth = $source.Width - (2 * $sideTrim)
     $cropX = $sideTrim
@@ -192,15 +151,6 @@ try {
             $slotInner = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 38, 39, 38))
             $slotHighlight = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 91, 88, 79))
             $slotShadow = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 19, 20, 19))
-            $tileOuter = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 7, 8, 9))
-            $tileInner = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 44, 40, 33))
-            $tileFace = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 17, 18, 18))
-            $tileHighlight = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 115, 89, 46))
-            $tileShadow = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 25, 22, 18))
-            $tabOuter = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 8, 9, 10))
-            $tabInner = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 31, 29, 25))
-            $tabHighlight = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 134, 99, 38))
-            $tabShadow = [System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(255, 24, 22, 19))
             $bronze = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(255, 130, 88, 29), 1)
             $iron = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(255, 67, 65, 59), 1)
             $panelHighlight = [System.Drawing.Pen]::new([System.Drawing.Color]::FromArgb(255, 53, 49, 42), 1)
@@ -228,19 +178,10 @@ try {
                 Draw-InsetPanel $graphics 258 414 232 64 $panelOuter $panelInner $iron $panelHighlight
                 Draw-SlotGrid $graphics 268 422 9 3 $slotOuter $slotInner $slotHighlight $slotShadow
 
-                # The art-direction reference contained six oversized rows.
-                # Replace that section completely with the five-by-five grid
-                # used by the live catalogue buttons (36px at a 40px pitch).
+                # The former five-by-five symbol catalogue is intentionally
+                # absent.  This single quiet steel inset now leaves visual
+                # space for a clean, live coin preview drawn by the screen.
                 Draw-InsetPanel $graphics 505 86 208 292 $panelOuter $panelInner $iron $panelHighlight
-                foreach ($tabX in 508, 575, 642) {
-                    Draw-MetalTab $graphics $tabX 90 $tabOuter $tabInner $tabHighlight $tabShadow
-                }
-                for ($row = 0; $row -lt 5; $row++) {
-                    for ($column = 0; $column -lt 5; $column++) {
-                        Draw-CatalogTile $graphics (507 + $column * 40) (121 + $row * 40) `
-                            $tileOuter $tileInner $tileFace $tileHighlight $tileShadow
-                    }
-                }
             } finally {
                 $panelOuter.Dispose()
                 $panelInner.Dispose()
@@ -248,15 +189,6 @@ try {
                 $slotInner.Dispose()
                 $slotHighlight.Dispose()
                 $slotShadow.Dispose()
-                $tileOuter.Dispose()
-                $tileInner.Dispose()
-                $tileFace.Dispose()
-                $tileHighlight.Dispose()
-                $tileShadow.Dispose()
-                $tabOuter.Dispose()
-                $tabInner.Dispose()
-                $tabHighlight.Dispose()
-                $tabShadow.Dispose()
                 $bronze.Dispose()
                 $iron.Dispose()
                 $panelHighlight.Dispose()

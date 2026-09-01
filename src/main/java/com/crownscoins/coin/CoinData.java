@@ -1,7 +1,6 @@
 package com.crownscoins.coin;
 
 import com.crownscoins.kingdom.Symbol;
-import com.crownscoins.kingdom.KingdomCrest;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -14,7 +13,6 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.component.DataComponentGetter;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.Item;
@@ -32,9 +30,8 @@ public record CoinData(
     int styleId,
     List<Symbol> symbols
 ) implements TooltipProvider {
-    /** Legacy item data can contain up to three symbols; new minting requires two. */
+    /** Legacy item data can contain up to three symbols; new coins use none. */
     public static final int MAX_SYMBOLS = 3;
-    public static final int REQUIRED_SECONDARY_SYMBOLS = 2;
     public static final int MAX_STYLE_ID = 25;
     public static final int MAX_VALUE = 1_000_000;
     private static final Codec<List<Symbol>> SYMBOLS_CODEC = Symbol.CODEC.listOf().validate(CoinData::validateSymbols);
@@ -104,37 +101,10 @@ public record CoinData(
         tooltip.accept(Component.translatable("tooltip.crownscoins.kingdom", kingdomName));
         tooltip.accept(Component.translatable("tooltip.crownscoins.value", value));
         tooltip.accept(Component.translatable("tooltip.crownscoins.metal", materialName(material)));
-        tooltip.accept(Component.translatable("tooltip.crownscoins.crest", crestName(kingdomCrest)));
-        tooltip.accept(Component.translatable("tooltip.crownscoins.style", styleId));
-        tooltip.accept(Component.translatable("tooltip.crownscoins.symbols", symbolsText(symbols)));
     }
 
     private static Component materialName(Material material) {
         return Component.translatable("tooltip.crownscoins.metal." + material.translationKey());
-    }
-
-    private static Component symbolName(Symbol symbol) {
-        return Component.translatable("symbol.crownscoins." + symbol.name().toLowerCase(Locale.ROOT));
-    }
-
-    private static Component crestName(Symbol crest) {
-        return KingdomCrest.fromSymbol(crest)
-            .<Component>map(value -> Component.translatable(value.translationKey()))
-            .orElseGet(() -> symbolName(crest));
-    }
-
-    private static Component symbolsText(List<Symbol> symbols) {
-        if (symbols.isEmpty()) {
-            return Component.translatable("tooltip.crownscoins.none");
-        }
-        MutableComponent result = Component.empty();
-        for (int index = 0; index < symbols.size(); index++) {
-            if (index > 0) {
-                result.append(Component.literal(", "));
-            }
-            result.append(symbolName(symbols.get(index)));
-        }
-        return result;
     }
 
     /** Fixed catalog value, kept independent from the mutable kingdom record. */
