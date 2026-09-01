@@ -5,7 +5,7 @@ param(
 
 <#!
 .SYNOPSIS
-Builds the blank 720 x 540 Coin Forge background used by the in-game screen.
+Builds the blank 480 x 360 compact Coin Forge background used by the in-game screen.
 
 .DESCRIPTION
 This texture is intentionally drawn as native 1:1 pixel art instead of being
@@ -14,24 +14,24 @@ inside its own steel recess while retaining the dark iron, aged-bronze style of
 the Coin Forge reference.  Text, stack counts, selected-metal highlights and
 buttons are all rendered by MintHouseScreen at runtime.
 
-Layout guides in the generated texture (all coordinates are local to 720x540):
-  title header        x  20, y   8, w 680, h  58
-  metal input panel   x  20, y  78, w 164, h 108
-  forge preview       x 194, y  78, w 298, h 108
-  coin chest          x 502, y  78, w 198, h 108
-  metal cards         x  20/253/486, y 198, w 214, h 80
-  player inventory    x  20, y 294, w 480, h 233
-  action panel        x 510, y 294, w 190, h 233
+Layout guides in the generated texture (all coordinates are local to 480x360):
+  title header        x  12, y   6, w 456, h  44
+  metal input panel   x  12, y  56, w  92, h  82
+  forge preview       x 114, y  56, w 164, h  82
+  coin chest          x 288, y  56, w 180, h  82
+  metal cards         x  12/168/324, y 146, w 144, h 62
+  player inventory    x  12, y 218, w 232, h 130
+  action panel        x 254, y 218, w 214, h 130
 
 Interactive slots (the Java menu uses these exact 18px positions):
-  material            x  94, y 121
-  coin chest          x 520, y 106 (9 columns x 3 rows)
-  player main         x 179, y 338 (9 columns x 3 rows)
-  player hotbar       x 179, y 398 (9 columns)
+  material            x  49, y  82
+  coin chest          x 297, y  76 (9 columns x 3 rows)
+  player main         x  48, y 252 (9 columns x 3 rows)
+  player hotbar       x  48, y 318 (9 columns)
 
 Runtime buttons (drawn as cavities so screen text remains sharp):
-  mint                x 526, y 466, w 164, h 32
-  back                x 547, y 505, w 122, h 18
+  mint                x 270, y 294, w 182, h 30
+  back                x 307, y 329, w 108, h 16
 #>
 
 Set-StrictMode -Version Latest
@@ -231,8 +231,8 @@ function Draw-ForgeMark(
     $Graphics.FillRectangle($Spark, $X - 30, $Y + 4, 2, 2)
 }
 
-$targetWidth = 720
-$targetHeight = 540
+$targetWidth = 480
+$targetHeight = 360
 $target = [System.Drawing.Bitmap]::new($targetWidth, $targetHeight, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
 try {
     $graphics = [System.Drawing.Graphics]::FromImage($target)
@@ -285,79 +285,74 @@ try {
             Fill-Texture $graphics 16 16 ($targetWidth - 32) ($targetHeight - 32) $stoneBrushes 51
 
             # Header and all functional zones.
-            Draw-Frame $graphics 20 8 680 58 $black $bronze $bronzeEdge $bronzeHighlight $deepIron
-            Fill-Texture $graphics 26 14 668 46 $panelBrushes 8
+            Draw-Frame $graphics 12 6 456 44 $black $bronze $bronzeEdge $bronzeHighlight $deepIron
+            Fill-Texture $graphics 18 12 444 32 $panelBrushes 8
 
-            Draw-Frame $graphics 20 78 164 108 $black $iron $ironEdge $ironHighlight $deepIron
-            Fill-Texture $graphics 26 84 152 96 $panelBrushes 31
-            Draw-Frame $graphics 194 78 298 108 $black $iron $ironEdge $ironHighlight $deepIron
-            Fill-Texture $graphics 200 84 286 96 $panelBrushes 42
-            Draw-Frame $graphics 502 78 198 108 $black $iron $ironEdge $ironHighlight $deepIron
-            Fill-Texture $graphics 508 84 186 96 $panelBrushes 65
+            Draw-Frame $graphics 12 56 92 82 $black $iron $ironEdge $ironHighlight $deepIron
+            Fill-Texture $graphics 18 62 80 70 $panelBrushes 31
+            Draw-Frame $graphics 114 56 164 82 $black $iron $ironEdge $ironHighlight $deepIron
+            Fill-Texture $graphics 120 62 152 70 $panelBrushes 42
+            Draw-Frame $graphics 288 56 180 82 $black $iron $ironEdge $ironHighlight $deepIron
+            Fill-Texture $graphics 294 62 168 70 $panelBrushes 65
 
-            Draw-Frame $graphics 20 198 214 80 $black $bronze $bronzeEdge $bronzeHighlight $deepIron
-            Fill-Texture $graphics 26 204 202 68 $panelBrushes 17
-            Draw-Frame $graphics 253 198 214 80 $black $iron $ironEdge $ironHighlight $deepIron
-            Fill-Texture $graphics 259 204 202 68 $panelBrushes 29
-            Draw-Frame $graphics 486 198 214 80 $black $bronze $gold $bronzeHighlight $deepIron
-            Fill-Texture $graphics 492 204 202 68 $panelBrushes 43
+            Draw-Frame $graphics 12 146 144 62 $black $bronze $bronzeEdge $bronzeHighlight $deepIron
+            Fill-Texture $graphics 18 152 132 50 $panelBrushes 17
+            Draw-Frame $graphics 168 146 144 62 $black $iron $ironEdge $ironHighlight $deepIron
+            Fill-Texture $graphics 174 152 132 50 $panelBrushes 29
+            Draw-Frame $graphics 324 146 144 62 $black $bronze $gold $bronzeHighlight $deepIron
+            Fill-Texture $graphics 330 152 132 50 $panelBrushes 43
 
-            Draw-Frame $graphics 20 294 480 233 $black $iron $ironEdge $ironHighlight $deepIron
-            Fill-Texture $graphics 26 300 468 221 $panelBrushes 71
-            Draw-Frame $graphics 510 294 190 233 $black $iron $ironEdge $ironHighlight $deepIron
-            Fill-Texture $graphics 516 300 178 221 $panelBrushes 79
+            Draw-Frame $graphics 12 218 232 130 $black $iron $ironEdge $ironHighlight $deepIron
+            Fill-Texture $graphics 18 224 220 118 $panelBrushes 71
+            Draw-Frame $graphics 254 218 214 130 $black $iron $ironEdge $ironHighlight $deepIron
+            Fill-Texture $graphics 260 224 202 118 $panelBrushes 79
 
             # Decorative header supports and bolts: labels sit above these at runtime.
-            $graphics.FillRectangle($bronze, 48, 27, 80, 3)
-            $graphics.FillRectangle($bronze, 592, 27, 80, 3)
-            Draw-Rivet $graphics 27 16 $black $iron $ironHighlight
-            Draw-Rivet $graphics 686 16 $black $iron $ironHighlight
-            Draw-Rivet $graphics 27 48 $black $iron $ironHighlight
-            Draw-Rivet $graphics 686 48 $black $iron $ironHighlight
+            $graphics.FillRectangle($bronze, 28, 24, 62, 2)
+            $graphics.FillRectangle($bronze, 390, 24, 62, 2)
+            Draw-Rivet $graphics 19 14 $black $iron $ironHighlight
+            Draw-Rivet $graphics 454 14 $black $iron $ironHighlight
+            Draw-Rivet $graphics 19 36 $black $iron $ironHighlight
+            Draw-Rivet $graphics 454 36 $black $iron $ironHighlight
 
             # Material well at the exact live material slot coordinate.
-            Draw-Frame $graphics 79 106 48 48 $black $bronze $bronzeEdge $bronzeHighlight $deepIron
-            Draw-MinecraftSlot $graphics 94 121 $slotOuter $slotInner $slotHighlight $slotShadow
-            $graphics.FillRectangle($bronze, 36, 157, 46, 2)
-            $graphics.FillRectangle($bronze, 126, 157, 22, 2)
+            Draw-Frame $graphics 34 67 48 48 $black $bronze $bronzeEdge $bronzeHighlight $deepIron
+            Draw-MinecraftSlot $graphics 49 82 $slotOuter $slotInner $slotHighlight $slotShadow
+            $graphics.FillRectangle($bronze, 23, 120, 27, 2)
+            $graphics.FillRectangle($bronze, 72, 120, 14, 2)
 
             # Coin forge flow in the top centre: arrow + anvil under the live preview.
-            Draw-ForgeMark $graphics 343 125 $black $iron $bronzeHighlight $gold
+            Draw-ForgeMark $graphics 196 97 $black $iron $bronzeHighlight $gold
 
             # Persistent coin chest: nine columns by three rows fit exactly.
-            Draw-Frame $graphics 514 100 174 65 $black $bronze $bronzeEdge $bronzeHighlight $deepIron
-            Draw-SlotGrid $graphics 520 106 9 3 $slotOuter $slotInner $slotHighlight $slotShadow
+            Draw-Frame $graphics 291 70 174 65 $black $bronze $bronzeEdge $bronzeHighlight $deepIron
+            Draw-SlotGrid $graphics 297 76 9 3 $slotOuter $slotInner $slotHighlight $slotShadow
 
             # Metal choice cards.  These are intentional recesses only; the
             # client renders the clean coin icon and selection outline on top.
-            Draw-TokenRecess $graphics 201 238 $black $copper $deepIron $bronzeHighlight
-            Draw-TokenRecess $graphics 434 238 $black $silver $deepIron $ironHighlight
-            Draw-TokenRecess $graphics 667 238 $black $gold $deepIron $bronzeHighlight
+            Draw-TokenRecess $graphics 121 177 $black $copper $deepIron $bronzeHighlight
+            Draw-TokenRecess $graphics 277 177 $black $silver $deepIron $ironHighlight
+            Draw-TokenRecess $graphics 433 177 $black $gold $deepIron $bronzeHighlight
 
             # Player inventory is moved to the central lower panel.  Keep its
             # 18px frame exact so the vanilla 16px item sprite is centred.
-            Draw-Frame $graphics 169 328 182 91 $black $iron $ironEdge $ironHighlight $deepIron
-            Draw-SlotGrid $graphics 179 338 9 3 $slotOuter $slotInner $slotHighlight $slotShadow
-            Draw-SlotGrid $graphics 179 398 9 1 $slotOuter $slotInner $slotHighlight $slotShadow
-
-            # Side ornaments leave room for inventory/currency labels rendered
-            # by the screen without obscuring functional slots.
-            Draw-TokenRecess $graphics 91 372 $black $bronze $deepIron $bronzeHighlight
-            Draw-TokenRecess $graphics 419 383 $black $bronze $deepIron $bronzeHighlight
+            Draw-Frame $graphics 38 242 182 100 $black $iron $ironEdge $ironHighlight $deepIron
+            Draw-SlotGrid $graphics 48 252 9 3 $slotOuter $slotInner $slotHighlight $slotShadow
+            Draw-SlotGrid $graphics 48 318 9 1 $slotOuter $slotInner $slotHighlight $slotShadow
 
             # Action panel has a quiet coin/readout well, then precise primary
             # and secondary button cavities at the coordinates supplied by the
             # screen.  The screen supplies all text and enabled/disabled state.
-            Draw-Frame $graphics 526 320 158 111 $black $iron $ironEdge $ironHighlight $deepIron
-            Draw-TokenRecess $graphics 605 369 $black $bronze $deepIron $bronzeHighlight
-            Draw-Frame $graphics 526 466 164 32 $black $bronze $gold $bronzeHighlight $bronze
-            Draw-Frame $graphics 547 505 122 18 $black $iron $ironEdge $ironHighlight $deepIron
+            Draw-Frame $graphics 270 230 182 55 $black $iron $ironEdge $ironHighlight $deepIron
+            Draw-TokenRecess $graphics 361 258 $black $bronze $deepIron $bronzeHighlight
+            Draw-Frame $graphics 270 294 182 30 $black $bronze $gold $bronzeHighlight $bronze
+            Draw-Frame $graphics 307 329 108 16 $black $iron $ironEdge $ironHighlight $deepIron
 
             # Outer-corner rivets complete the heavy forge casing.
             Draw-Rivet $graphics 7 7 $black $iron $ironHighlight
-            Draw-Rivet $graphics 706 7 $black $iron $ironHighlight
-            Draw-Rivet $graphics 7 526 $black $iron $ironHighlight
-            Draw-Rivet $graphics 706 526 $black $iron $ironHighlight
+            Draw-Rivet $graphics 466 7 $black $iron $ironHighlight
+            Draw-Rivet $graphics 7 346 $black $iron $ironHighlight
+            Draw-Rivet $graphics 466 346 $black $iron $ironHighlight
         } finally {
             $black.Dispose()
             $deepIron.Dispose()
@@ -382,13 +377,13 @@ try {
     }
 
     $textureRoot = Join-Path $ResourceRoot 'assets\crownscoins\textures\gui'
-    # The older mint_house textures can stay open in a running resource pack
-    # on Windows.  Write this redesigned interface under its own immutable
-    # name instead, then let MintHouseScreen select it directly.
-    Save-Png $target (Join-Path $textureRoot 'coin_forge_workbench.png')
-    Save-Png $target (Join-Path $textureRoot 'coin_forge_menu.png')
+    # The prior Coin Forge textures can remain open in a running client on
+    # Windows.  Write the compact design under new names so Java can switch
+    # safely without trying to replace a locked asset.
+    Save-Png $target (Join-Path $textureRoot 'compact_coin_forge_workbench.png')
+    Save-Png $target (Join-Path $textureRoot 'compact_coin_forge_menu.png')
 } finally {
     $target.Dispose()
 }
 
-Write-Output 'Generated Coin Forge GUI backgrounds: 720x540.'
+Write-Output 'Generated compact Coin Forge GUI backgrounds: 480x360.'
