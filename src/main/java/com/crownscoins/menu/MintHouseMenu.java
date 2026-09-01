@@ -48,16 +48,6 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
     private static final int PLAYER_SLOT_START = COIN_STORAGE_SLOT_END;
     private static final int PLAYER_MAIN_END = PLAYER_SLOT_START + 27;
     private static final int PLAYER_SLOT_END = PLAYER_MAIN_END + 9;
-    // These locations match the three lower panels in the Mint House artwork:
-    // player inventory on the left, coin chest in the centre, action panel right.
-    private static final int MATERIAL_SLOT_X = 45;
-    private static final int MATERIAL_SLOT_Y = 334;
-    private static final int COIN_STORAGE_X = 268;
-    private static final int COIN_STORAGE_Y = 422;
-    private static final int PLAYER_INVENTORY_X = 24;
-    private static final int PLAYER_INVENTORY_Y = 422;
-    private static final int PLAYER_HOTBAR_Y = 482;
-
     private final ClientMintData clientData;
     /** One temporary input slot, returned to its owner like a vanilla crafting grid. */
     private final Container materialSlot;
@@ -101,7 +91,12 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         this.clientData = clientData;
         this.materialSlot = new SimpleContainer(1);
         this.coinStorage = coinStorageFor(inventory, mintHousePos);
-        this.addSlot(new Slot(this.materialSlot, MATERIAL_SLOT, MATERIAL_SLOT_X, MATERIAL_SLOT_Y) {
+        this.addSlot(new Slot(
+            this.materialSlot,
+            MATERIAL_SLOT,
+            MintHouseLayout.MATERIAL_SLOT_X,
+            MintHouseLayout.MATERIAL_SLOT_Y
+        ) {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return isMintingIngot(stack);
@@ -113,12 +108,20 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             this.addSlot(new CoinStorageSlot(
                 this.coinStorage,
                 slot,
-                COIN_STORAGE_X + column * 18,
-                COIN_STORAGE_Y + row * 18
+                MintHouseLayout.COIN_STORAGE_X + column * 18,
+                MintHouseLayout.COIN_STORAGE_Y + row * 18
             ));
         }
-        this.addInventoryExtendedSlots(inventory, PLAYER_INVENTORY_X, PLAYER_INVENTORY_Y);
-        this.addInventoryHotbarSlots(inventory, PLAYER_INVENTORY_X, PLAYER_HOTBAR_Y);
+        this.addInventoryExtendedSlots(
+            inventory,
+            MintHouseLayout.PLAYER_INVENTORY_X,
+            MintHouseLayout.PLAYER_INVENTORY_Y
+        );
+        this.addInventoryHotbarSlots(
+            inventory,
+            MintHouseLayout.PLAYER_INVENTORY_X,
+            MintHouseLayout.PLAYER_HOTBAR_Y
+        );
     }
 
     /** Server-authored display data only; never used to authorize minting. */

@@ -4,18 +4,19 @@ import com.crownscoins.CrownsCoins;
 import com.crownscoins.kingdom.Kingdom;
 import com.crownscoins.kingdom.KingdomCrest;
 import com.crownscoins.kingdom.Symbol;
+import com.crownscoins.menu.MintHouseLayout;
 import com.crownscoins.menu.MintHouseMenu;
 import com.crownscoins.network.MintCoinPayload;
 import com.crownscoins.network.UpdateCurrencyNamePayload;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -25,66 +26,16 @@ import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 
 /**
- * The client view for the Mint House.
+ * Client view for the Mint House Coin Forge.
  *
- * <p>The layout deliberately keeps the physical slots owned by {@link MintHouseMenu}
- * and only arranges the visual controls around them. This makes the screen feel like
- * a real Minecraft workstation while leaving every material, chest and minting check
- * on the server.</p>
+ * <p>Its background deliberately contains only fixed decoration. All real
+ * slots still belong to {@link MintHouseMenu}, so material handling, the coin
+ * chest and the player's inventory remain ordinary Minecraft interactions.</p>
  */
 public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu> {
-    private static final int SCREEN_WIDTH = 720;
-    private static final int SCREEN_HEIGHT = 540;
-
-    // Panel bounds mirror the compact, three-column mint-table interface.
-    private static final int HEADER_X = 56;
-    private static final int HEADER_Y = 26;
-    private static final int HEADER_WIDTH = 610;
-    private static final int HEADER_HEIGHT = 45;
-    private static final int METAL_PANEL_X = 0;
-    private static final int METAL_PANEL_Y = 77;
-    private static final int METAL_PANEL_WIDTH = 183;
-    private static final int PREVIEW_PANEL_X = 190;
-    private static final int PREVIEW_PANEL_Y = 77;
-    private static final int PREVIEW_PANEL_WIDTH = 313;
-    private static final int SYMBOL_PANEL_X = 509;
-    private static final int SYMBOL_PANEL_Y = 77;
-    private static final int SYMBOL_PANEL_WIDTH = 211;
-    private static final int TOP_PANEL_HEIGHT = 307;
-    private static final int BOTTOM_PANEL_Y = 393;
-    private static final int BOTTOM_PANEL_HEIGHT = 134;
-    private static final int PLAYER_PANEL_X = 0;
-    private static final int PLAYER_PANEL_WIDTH = 240;
-    private static final int CHEST_PANEL_X = 248;
-    private static final int CHEST_PANEL_WIDTH = 250;
-    private static final int ACTION_PANEL_X = 504;
-    private static final int ACTION_PANEL_WIDTH = 216;
-
-    // These coordinates are also used by MintHouseMenu for the real slots.
-    private static final int MATERIAL_SLOT_X = 45;
-    private static final int MATERIAL_SLOT_Y = 334;
-    private static final int PLAYER_INVENTORY_X = 24;
-    private static final int PLAYER_INVENTORY_Y = 422;
-    private static final int HOTBAR_Y = 482;
-    private static final int COIN_CHEST_X = 268;
-    private static final int COIN_CHEST_Y = 422;
-
-    private static final int METAL_CARD_X = 9;
-    private static final int METAL_CARD_Y = 89;
-    private static final int METAL_CARD_WIDTH = 177;
-    private static final int METAL_CARD_HEIGHT = 64;
-    private static final int METAL_CARD_GAP = 8;
-    private static final int PREVIEW_CENTER_X = 350;
-    private static final int PREVIEW_CENTER_Y = 180;
-    private static final int PREVIEW_SIZE = 154;
-    private static final int CONFIRM_X = 528;
-    private static final int CONFIRM_Y = 453;
-    private static final int CONFIRM_WIDTH = 168;
-    private static final int CONFIRM_HEIGHT = 30;
-    private static final int BACK_X = 550;
-    private static final int BACK_Y = 496;
-    private static final int BACK_WIDTH = 124;
-    private static final int BACK_HEIGHT = 20;
+    private static final int SCREEN_WIDTH = MintHouseLayout.SCREEN_WIDTH;
+    private static final int SCREEN_HEIGHT = MintHouseLayout.SCREEN_HEIGHT;
+    private static final int PREVIEW_SIZE = 76;
 
     private static final int PANEL_INNER = 0xE9101115;
     private static final int BORDER_DARK = 0xFF2B251D;
@@ -95,7 +46,7 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     private static final int SUBTLE_TEXT = 0xFFA8A49B;
     private static final Identifier MENU_TEXTURE = Identifier.fromNamespaceAndPath(
         CrownsCoins.MOD_ID,
-        "textures/gui/mint_house_workbench.png"
+        "textures/gui/coin_forge_workbench.png"
     );
 
     private final MintHouseMenu.ClientMintData display;
@@ -125,16 +76,25 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         Kingdom.Metal[] metals = {Kingdom.Metal.COPPER, Kingdom.Metal.IRON, Kingdom.Metal.GOLD};
         for (int index = 0; index < metals.length; index++) {
             Kingdom.Metal metal = metals[index];
-            int cardY = this.topPos + METAL_CARD_Y + index * (METAL_CARD_HEIGHT + METAL_CARD_GAP);
             Button card = this.addRenderableWidget(invisible(Button.builder(Component.empty(), ignored -> selectMetal(metal))
-                .bounds(this.leftPos + METAL_CARD_X, cardY, METAL_CARD_WIDTH, METAL_CARD_HEIGHT)
+                .bounds(
+                    this.leftPos + MintHouseLayout.metalCardX(index),
+                    this.topPos + MintHouseLayout.METAL_CARD_Y,
+                    MintHouseLayout.METAL_CARD_WIDTH,
+                    MintHouseLayout.METAL_CARD_HEIGHT
+                )
                 .tooltip(Tooltip.create(metalName(metal)))
                 .build()));
             this.metalButtons.add(new MetalButton(card, metal));
         }
 
         this.confirmButton = this.addRenderableWidget(invisible(Button.builder(Component.empty(), ignored -> mint())
-            .bounds(this.leftPos + CONFIRM_X, this.topPos + CONFIRM_Y, CONFIRM_WIDTH, CONFIRM_HEIGHT)
+            .bounds(
+                this.leftPos + MintHouseLayout.CONFIRM_X,
+                this.topPos + MintHouseLayout.CONFIRM_Y,
+                MintHouseLayout.CONFIRM_WIDTH,
+                MintHouseLayout.CONFIRM_HEIGHT
+            )
             .build()));
         this.backButton = this.addRenderableWidget(invisible(Button.builder(Component.empty(), ignored -> {
                 if (this.currencyTabOpen) {
@@ -143,16 +103,21 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
                     this.onClose();
                 }
             })
-            .bounds(this.leftPos + BACK_X, this.topPos + BACK_Y, BACK_WIDTH, BACK_HEIGHT)
+            .bounds(
+                this.leftPos + MintHouseLayout.BACK_X,
+                this.topPos + MintHouseLayout.BACK_Y,
+                MintHouseLayout.BACK_WIDTH,
+                MintHouseLayout.BACK_HEIGHT
+            )
             .build()));
 
         if (this.display.canEditCurrency()) {
             this.mintTabButton = this.addRenderableWidget(invisible(Button.builder(Component.empty(), ignored -> this.setCurrencyTab(false))
-                .bounds(this.leftPos + 520, this.topPos + 49, 53, 16)
+                .bounds(this.leftPos + 574, this.topPos + 47, 50, 14)
                 .tooltip(Tooltip.create(gui("tab_mint")))
                 .build()));
             this.currencyTabButton = this.addRenderableWidget(invisible(Button.builder(Component.empty(), ignored -> this.setCurrencyTab(true))
-                .bounds(this.leftPos + 577, this.topPos + 49, 84, 16)
+                .bounds(this.leftPos + 628, this.topPos + 47, 58, 14)
                 .tooltip(Tooltip.create(gui("tab_currency")))
                 .build()));
         }
@@ -160,9 +125,9 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         Component currencyNameLabel = gui("currency_name");
         this.currencyNameField = this.addRenderableWidget(new EditBox(
             this.font,
-            this.leftPos + 232,
-            this.topPos + 202,
-            230,
+            this.leftPos + 235,
+            this.topPos + 187,
+            250,
             20,
             currencyNameLabel
         ));
@@ -171,7 +136,7 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         this.currencyNameField.setValue(this.display.currencyName());
         this.currencyNameField.setResponder(ignored -> this.refreshCurrencySaveState());
         this.saveCurrencyButton = this.addRenderableWidget(invisible(Button.builder(Component.empty(), ignored -> saveCurrencyName())
-            .bounds(this.leftPos + 288, this.topPos + 235, 118, 20)
+            .bounds(this.leftPos + 301, this.topPos + 222, 118, 20)
             .build()));
 
         this.setCurrencyTab(false);
@@ -193,17 +158,17 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     }
 
     private void refreshSelectionState() {
-        if (this.confirmButton != null) {
-            int quantity = this.menu.mintableCoinCountFor(this.selectedMetal);
-            this.confirmButton.active = KingdomCrest.isSupported(this.display.crest())
-                && quantity > 0;
-            if (quantity > 0) {
-                this.confirmButton.setMessage(gui("mint_stack", quantity));
-                this.confirmButton.setTooltip(Tooltip.create(gui("mint_stack_tooltip", quantity)));
-            } else {
-                this.confirmButton.setMessage(gui("confirm"));
-                this.confirmButton.setTooltip(Tooltip.create(gui("mint_stack_empty")));
-            }
+        if (this.confirmButton == null) {
+            return;
+        }
+        int quantity = this.menu.mintableCoinCountFor(this.selectedMetal);
+        this.confirmButton.active = KingdomCrest.isSupported(this.display.crest()) && quantity > 0;
+        if (quantity > 0) {
+            this.confirmButton.setMessage(gui("mint_stack", quantity));
+            this.confirmButton.setTooltip(Tooltip.create(gui("mint_stack_tooltip", quantity)));
+        } else {
+            this.confirmButton.setMessage(gui("confirm"));
+            this.confirmButton.setTooltip(Tooltip.create(gui("mint_stack_empty")));
         }
     }
 
@@ -268,18 +233,11 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
             this.status = gui("insert_matching_ingot", metalName(this.selectedMetal));
             return;
         }
-        ClientPacketDistributor.sendToServer(new MintCoinPayload(
-            this.menu.containerId,
-            metalId(this.selectedMetal)
-        ));
+        ClientPacketDistributor.sendToServer(new MintCoinPayload(this.menu.containerId, metalId(this.selectedMetal)));
         this.status = gui("mint_sent", quantity);
     }
 
-    /**
-     * An EditBox does not claim ordinary printable keys itself. Claiming the
-     * event here prevents the inventory key (normally E) from interrupting a
-     * currency name while the field is focused.
-     */
+    /** Prevent the inventory shortcut from interrupting an active name edit. */
     @Override
     public boolean keyPressed(KeyEvent event) {
         if (this.currencyTabOpen
@@ -305,19 +263,19 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         }
 
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
-
         renderHeaderText(graphics, left, top);
         if (this.currencyTabOpen) {
             renderCurrencyTabText(graphics, left, top);
             return;
         }
 
-        renderMetalCards(graphics, left, top);
-        renderCleanCoinPanel(graphics, left, top);
+        renderInputPanel(graphics, left, top);
         renderPreview(graphics, left, top);
+        renderCoinChestPanel(graphics, left, top);
+        renderMetalCards(graphics, left, top);
+        renderInventoryPanel(graphics, left, top);
         renderActionPanel(graphics, left, top);
-        renderBottomLabels(graphics, left, top);
-        graphics.centeredText(this.font, this.status, left + PREVIEW_CENTER_X, top + 365, GOLD);
+        graphics.centeredText(this.font, this.status, left + SCREEN_WIDTH / 2, top + 283, GOLD);
     }
 
     private void renderChrome(GuiGraphicsExtractor graphics, int left, int top) {
@@ -338,33 +296,33 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     }
 
     private void renderHeaderText(GuiGraphicsExtractor graphics, int left, int top) {
-        graphics.centeredText(this.font, gui("mint_table"), left + SCREEN_WIDTH / 2, top + 10, GOLD);
-        renderHeaderCrest(graphics, left + 71, top + 33, this.display.crest());
-        graphics.text(this.font, gui("kingdom", this.display.kingdomName()), left + 110, top + 44, TEXT);
+        graphics.centeredText(this.font, gui("mint_table"), left + SCREEN_WIDTH / 2, top + 15, GOLD);
+        renderHeaderCrest(graphics, left + 34, top + 31, this.display.crest());
+        graphics.text(this.font, gui("kingdom", this.display.kingdomName()), left + 73, top + 42, TEXT);
         graphics.blit(
             RenderPipelines.GUI_TEXTURED,
             coinTexture(this.selectedMetal),
-            left + 419,
-            top + 35,
+            left + 408,
+            top + 31,
             0.0F,
             0.0F,
-            27,
-            27,
+            24,
+            24,
             32,
             32,
             32,
             32
         );
-        graphics.text(this.font, Component.literal(this.display.currencyName()), left + 451, top + 44, GOLD);
+        graphics.text(this.font, Component.literal(shortName(this.display.currencyName(), 20)), left + 437, top + 40, GOLD);
         if (this.display.canEditCurrency()) {
-            renderSmallHeaderButton(graphics, left + 520, top + 49, 53, 16, gui("tab_mint"), !this.currencyTabOpen);
-            renderSmallHeaderButton(graphics, left + 577, top + 49, 84, 16, gui("tab_currency"), this.currencyTabOpen);
+            renderSmallHeaderButton(graphics, left + 574, top + 47, 50, 14, gui("tab_mint"), !this.currencyTabOpen);
+            renderSmallHeaderButton(graphics, left + 628, top + 47, 58, 14, gui("tab_currency_short"), this.currencyTabOpen);
         }
     }
 
     private void renderHeaderCrest(GuiGraphicsExtractor graphics, int x, int y, Symbol crest) {
-        graphics.fill(x - 2, y - 2, x + 31, y + 31, PANEL_INNER);
-        graphics.outline(x - 2, y - 2, 33, 33, GOLD_DARK);
+        graphics.fill(x - 2, y - 2, x + 30, y + 30, PANEL_INNER);
+        graphics.outline(x - 2, y - 2, 32, 32, GOLD_DARK);
         graphics.blit(
             RenderPipelines.GUI_TEXTURED,
             crestCenterTexture(crest),
@@ -372,8 +330,8 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
             y,
             0.0F,
             0.0F,
-            27,
-            27,
+            26,
+            26,
             32,
             32,
             32,
@@ -381,52 +339,16 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         );
     }
 
-    private void renderMetalCards(GuiGraphicsExtractor graphics, int left, int top) {
-        graphics.centeredText(this.font, gui("metal_and_value"), left + 91, top + 91, GOLD);
-        Kingdom.Metal[] metals = {Kingdom.Metal.COPPER, Kingdom.Metal.IRON, Kingdom.Metal.GOLD};
-        for (int index = 0; index < metals.length; index++) {
-            Kingdom.Metal metal = metals[index];
-            int x = left + METAL_CARD_X;
-            int y = top + METAL_CARD_Y + index * (METAL_CARD_HEIGHT + METAL_CARD_GAP);
-            boolean selected = metal == this.selectedMetal;
-            int border = selected ? metalColor(metal) : BORDER;
-            if (selected) {
-                graphics.fill(x + 2, y + 2, x + METAL_CARD_WIDTH - 2, y + METAL_CARD_HEIGHT - 2, 0x402F2112);
-                graphics.outline(x + 2, y + 2, METAL_CARD_WIDTH - 4, METAL_CARD_HEIGHT - 4, border);
-            }
-            graphics.item(ingotStack(metal), x + 13, y + 24);
-            graphics.text(this.font, metalName(metal), x + 42, y + 16, metalColor(metal));
-            graphics.text(this.font, gui("mint_ratio"), x + 42, y + 37, SUBTLE_TEXT);
-        }
-        graphics.centeredText(this.font, gui("material_slot"), left + MATERIAL_SLOT_X + 8, top + 306, GOLD);
-        graphics.centeredText(this.font, gui("mint_ratio"), left + MATERIAL_SLOT_X + 8, top + 359, SUBTLE_TEXT);
-    }
-
-    private void renderCleanCoinPanel(GuiGraphicsExtractor graphics, int left, int top) {
-        int centerX = left + SYMBOL_PANEL_X + SYMBOL_PANEL_WIDTH / 2;
-        graphics.centeredText(this.font, gui("clean_coin_heading"), centerX, top + 91, GOLD);
-        graphics.blit(
-            RenderPipelines.GUI_TEXTURED,
-            coinTexture(this.selectedMetal),
-            centerX - 56,
-            top + 124,
-            0.0F,
-            0.0F,
-            112,
-            112,
-            32,
-            32,
-            32,
-            32
-        );
-        graphics.centeredText(this.font, gui("clean_coin_description"), centerX, top + 266, TEXT);
-        graphics.centeredText(this.font, gui("clean_coin_note"), centerX, top + 284, SUBTLE_TEXT);
+    private void renderInputPanel(GuiGraphicsExtractor graphics, int left, int top) {
+        int centerX = left + MintHouseLayout.MATERIAL_PANEL_X + MintHouseLayout.MATERIAL_PANEL_WIDTH / 2;
+        graphics.centeredText(this.font, gui("material_slot"), centerX, top + 90, GOLD);
+        graphics.centeredText(this.font, gui("mint_ratio"), centerX, top + 166, SUBTLE_TEXT);
     }
 
     private void renderPreview(GuiGraphicsExtractor graphics, int left, int top) {
-        graphics.centeredText(this.font, gui("preview"), left + PREVIEW_CENTER_X, top + 91, GOLD);
-        int previewX = left + PREVIEW_CENTER_X - PREVIEW_SIZE / 2;
-        int previewY = top + PREVIEW_CENTER_Y - PREVIEW_SIZE / 2;
+        graphics.centeredText(this.font, gui("preview"), left + MintHouseLayout.PREVIEW_CENTER_X, top + 90, GOLD);
+        int previewX = left + MintHouseLayout.PREVIEW_CENTER_X - PREVIEW_SIZE / 2;
+        int previewY = top + MintHouseLayout.PREVIEW_CENTER_Y - PREVIEW_SIZE / 2 + 8;
         graphics.blit(
             RenderPipelines.GUI_TEXTURED,
             coinTexture(this.selectedMetal),
@@ -441,66 +363,141 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
             32,
             32
         );
-        graphics.centeredText(this.font, gui("coin_formula"), left + PREVIEW_CENTER_X, top + 348, TEXT);
+        graphics.text(this.font, Component.literal(shortName(this.display.currencyName(), 13)), left + 389, top + 128, TEXT);
     }
 
-    private void renderActionPanel(GuiGraphicsExtractor graphics, int left, int top) {
-        int quantity = this.menu.mintableCoinCountFor(this.selectedMetal);
-        int shownQuantity = Math.max(0, quantity);
-        graphics.centeredText(this.font, gui("mint_cost"), left + ACTION_PANEL_X + ACTION_PANEL_WIDTH / 2,
-            top + 404, GOLD);
-        graphics.item(ingotStack(this.selectedMetal), left + 529, top + 419);
-        graphics.text(this.font, Component.literal("x" + shownQuantity), left + 549, top + 425, TEXT);
-        graphics.centeredText(this.font, "→", left + 604, top + 422, GOLD);
+    private void renderCoinChestPanel(GuiGraphicsExtractor graphics, int left, int top) {
+        int centerX = left + MintHouseLayout.COIN_CHEST_PANEL_X + MintHouseLayout.COIN_CHEST_PANEL_WIDTH / 2;
+        graphics.centeredText(this.font, gui("coin_chest"), centerX, top + 90, GOLD);
+    }
+
+    private void renderMetalCards(GuiGraphicsExtractor graphics, int left, int top) {
+        Kingdom.Metal[] metals = {Kingdom.Metal.COPPER, Kingdom.Metal.IRON, Kingdom.Metal.GOLD};
+        for (int index = 0; index < metals.length; index++) {
+            Kingdom.Metal metal = metals[index];
+            int x = left + MintHouseLayout.metalCardX(index);
+            int y = top + MintHouseLayout.METAL_CARD_Y;
+            boolean selected = metal == this.selectedMetal;
+            int border = selected ? metalColor(metal) : BORDER;
+            if (selected) {
+                graphics.fill(x + 3, y + 3, x + MintHouseLayout.METAL_CARD_WIDTH - 3,
+                    y + MintHouseLayout.METAL_CARD_HEIGHT - 3, 0x663D2A13);
+                graphics.outline(x + 2, y + 2, MintHouseLayout.METAL_CARD_WIDTH - 4,
+                    MintHouseLayout.METAL_CARD_HEIGHT - 4, border);
+            }
+            graphics.item(ingotStack(metal), x + 19, y + 34);
+            graphics.text(this.font, metalName(metal), x + 47, y + 17, metalColor(metal));
+            graphics.text(this.font, gui("mint_ratio"), x + 47, y + 42, SUBTLE_TEXT);
+            graphics.blit(
+                RenderPipelines.GUI_TEXTURED,
+                coinTexture(metal),
+                x + 157,
+                y + 17,
+                0.0F,
+                0.0F,
+                48,
+                48,
+                32,
+                32,
+                32,
+                32
+            );
+        }
+    }
+
+    private void renderInventoryPanel(GuiGraphicsExtractor graphics, int left, int top) {
+        int centerX = left + MintHouseLayout.INVENTORY_PANEL_X + MintHouseLayout.INVENTORY_PANEL_WIDTH / 2;
+        graphics.centeredText(this.font, gui("player_inventory"), centerX, top + 306, GOLD);
+        graphics.item(ingotStack(this.selectedMetal), left + 83, top + 364);
+        graphics.centeredText(this.font, gui("material_slot"), left + 87, top + 343, SUBTLE_TEXT);
+        graphics.centeredText(this.font, gui("mint_ratio"), left + 99, top + 386, SUBTLE_TEXT);
         graphics.blit(
             RenderPipelines.GUI_TEXTURED,
             coinTexture(this.selectedMetal),
-            left + 625,
-            top + 416,
+            left + 388,
+            top + 352,
             0.0F,
             0.0F,
-            28,
-            28,
+            62,
+            62,
             32,
             32,
             32,
             32
         );
-        graphics.text(this.font, Component.literal("x" + shownQuantity), left + 655, top + 425, TEXT);
-
-        Component mintLabel = quantity > 0 ? gui("mint_stack", quantity) : gui("confirm");
-        renderActionButton(graphics, left + CONFIRM_X, top + CONFIRM_Y, CONFIRM_WIDTH, CONFIRM_HEIGHT,
-            mintLabel, this.confirmButton != null && this.confirmButton.active, true);
-        renderActionButton(graphics, left + BACK_X, top + BACK_Y, BACK_WIDTH, BACK_HEIGHT, gui("back"), true, false);
     }
 
-    private void renderBottomLabels(GuiGraphicsExtractor graphics, int left, int top) {
-        graphics.centeredText(this.font, gui("player_inventory"), left + PLAYER_PANEL_X + PLAYER_PANEL_WIDTH / 2, top + 403, GOLD);
-        graphics.centeredText(this.font, gui("coin_chest"), left + CHEST_PANEL_X + CHEST_PANEL_WIDTH / 2, top + 403, GOLD);
+    private void renderActionPanel(GuiGraphicsExtractor graphics, int left, int top) {
+        int quantity = Math.max(0, this.menu.mintableCoinCountFor(this.selectedMetal));
+        int centerX = left + MintHouseLayout.ACTION_PANEL_X + MintHouseLayout.ACTION_PANEL_WIDTH / 2;
+        graphics.centeredText(this.font, gui("mint_cost"), centerX, top + 315, GOLD);
+        graphics.item(ingotStack(this.selectedMetal), left + 533, top + 350);
+        graphics.text(this.font, Component.literal("x" + quantity), left + 554, top + 356, TEXT);
+        graphics.centeredText(this.font, "→", left + 608, top + 354, GOLD);
+        graphics.blit(
+            RenderPipelines.GUI_TEXTURED,
+            coinTexture(this.selectedMetal),
+            left + 627,
+            top + 342,
+            0.0F,
+            0.0F,
+            36,
+            36,
+            32,
+            32,
+            32,
+            32
+        );
+        graphics.text(this.font, Component.literal("x" + quantity), left + 665, top + 356, TEXT);
+        graphics.centeredText(this.font, gui("mint_ratio"), centerX, top + 421, SUBTLE_TEXT);
+
+        Component mintLabel = quantity > 0 ? gui("mint_stack", quantity) : gui("confirm");
+        renderActionButton(
+            graphics,
+            left + MintHouseLayout.CONFIRM_X,
+            top + MintHouseLayout.CONFIRM_Y,
+            MintHouseLayout.CONFIRM_WIDTH,
+            MintHouseLayout.CONFIRM_HEIGHT,
+            mintLabel,
+            this.confirmButton != null && this.confirmButton.active,
+            true
+        );
+        renderActionButton(
+            graphics,
+            left + MintHouseLayout.BACK_X,
+            top + MintHouseLayout.BACK_Y,
+            MintHouseLayout.BACK_WIDTH,
+            MintHouseLayout.BACK_HEIGHT,
+            gui("back"),
+            true,
+            false
+        );
     }
 
     private void renderCurrencyTabBackground(GuiGraphicsExtractor graphics, int left, int top) {
-        // This tab replaces the selection workflow without changing any real
-        // inventory slot or stored coin. It is only the founder's name editor.
-        graphics.fill(left + METAL_PANEL_X + 7, top + METAL_PANEL_Y + 7,
-            left + SCREEN_WIDTH - 7, top + TOP_PANEL_HEIGHT + METAL_PANEL_Y - 7, 0xF114161A);
-        graphics.outline(left + METAL_PANEL_X + 7, top + METAL_PANEL_Y + 7,
-            SCREEN_WIDTH - 14, TOP_PANEL_HEIGHT - 14, BORDER);
+        graphics.fill(left + 20, top + 78, left + 700, top + 320, 0xF114161A);
+        graphics.outline(left + 20, top + 78, 680, 242, BORDER);
     }
 
     private void renderCurrencyTabText(GuiGraphicsExtractor graphics, int left, int top) {
-        // Hide the ordinary material slot after its item has been extracted.
-        graphics.fill(left + MATERIAL_SLOT_X - 2, top + MATERIAL_SLOT_Y - 2,
-            left + MATERIAL_SLOT_X + 20, top + MATERIAL_SLOT_Y + 20, 0xFF14161A);
-        graphics.centeredText(this.font, gui("currency_tab_title"), left + SCREEN_WIDTH / 2, top + 121, GOLD);
-        graphics.centeredText(this.font, gui("currency_name"), left + SCREEN_WIDTH / 2, top + 185, TEXT);
-        graphics.centeredText(this.font, gui("economy_fixed"), left + SCREEN_WIDTH / 2, top + 269, GOLD);
-        graphics.centeredText(this.font, gui("economy_example"), left + SCREEN_WIDTH / 2, top + 287, TEXT);
-        graphics.centeredText(this.font, gui("economy_total"), left + SCREEN_WIDTH / 2, top + 305, TEXT);
-        renderActionButton(graphics, left + 288, top + 235, 118, 20, gui("save_currency"),
+        graphics.centeredText(this.font, gui("currency_tab_title"), left + SCREEN_WIDTH / 2, top + 109, GOLD);
+        graphics.centeredText(this.font, gui("currency_name"), left + SCREEN_WIDTH / 2, top + 171, TEXT);
+        graphics.centeredText(this.font, gui("economy_fixed"), left + SCREEN_WIDTH / 2, top + 259, GOLD);
+        graphics.centeredText(this.font, gui("economy_example"), left + SCREEN_WIDTH / 2, top + 277, TEXT);
+        graphics.centeredText(this.font, gui("economy_total"), left + SCREEN_WIDTH / 2, top + 295, TEXT);
+        renderActionButton(graphics, left + 301, top + 222, 118, 20, gui("save_currency"),
             this.saveCurrencyButton != null && this.saveCurrencyButton.active, false);
-        renderActionButton(graphics, left + BACK_X, top + BACK_Y, BACK_WIDTH, BACK_HEIGHT, gui("tab_mint"), true, false);
-        graphics.centeredText(this.font, this.status, left + SCREEN_WIDTH / 2, top + 350, GOLD);
+        renderActionButton(
+            graphics,
+            left + MintHouseLayout.BACK_X,
+            top + MintHouseLayout.BACK_Y,
+            MintHouseLayout.BACK_WIDTH,
+            MintHouseLayout.BACK_HEIGHT,
+            gui("tab_mint"),
+            true,
+            false
+        );
+        graphics.centeredText(this.font, this.status, left + SCREEN_WIDTH / 2, top + 325, GOLD);
     }
 
     private void renderSmallHeaderButton(
@@ -514,7 +511,7 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     ) {
         graphics.fill(x, y, x + width, y + height, selected ? 0xFF382816 : PANEL_INNER);
         graphics.outline(x, y, width, height, selected ? GOLD : BORDER);
-        graphics.centeredText(this.font, label, x + width / 2, y + 4, selected ? GOLD : TEXT);
+        graphics.centeredText(this.font, label, x + width / 2, y + 3, selected ? GOLD : TEXT);
     }
 
     private void renderActionButton(
@@ -538,7 +535,7 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         graphics.centeredText(this.font, label, x + width / 2, y + (height - 8) / 2, textColor);
     }
 
-    /** Buttons retain their click, focus and tooltip behaviour; the artwork draws their face. */
+    /** Buttons retain normal click, focus and tooltip behaviour; the UI draws their faces. */
     private static Button invisible(Button button) {
         button.setAlpha(0.0F);
         return button;
@@ -592,6 +589,14 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
             CrownsCoins.MOD_ID,
             "textures/item/overlay/crest_center/%02d_%s.png".formatted(crest.id(), crest.name().toLowerCase(Locale.ROOT))
         );
+    }
+
+    private static String shortName(String value, int maximumCodePoints) {
+        if (value.codePointCount(0, value.length()) <= maximumCodePoints) {
+            return value;
+        }
+        int end = value.offsetByCodePoints(0, maximumCodePoints - 1);
+        return value.substring(0, end) + "…";
     }
 
     private static Component gui(String key, Object... arguments) {
