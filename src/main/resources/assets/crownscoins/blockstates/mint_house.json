@@ -1,8 +1,12 @@
 {
   "variants": {
-    "facing=north": { "model": "crownscoins:block/mint_house" },
-    "facing=east": { "model": "crownscoins:block/mint_house", "y": 90 },
-    "facing=south": { "model": "crownscoins:block/mint_house", "y": 180 },
-    "facing=west": { "model": "crownscoins:block/mint_house", "y": 270 }
+    "facing=north,part=foot": { "model": "crownscoins:block/mint_house_royal_left" },
+    "facing=east,part=foot": { "model": "crownscoins:block/mint_house_royal_left", "y": 90 },
+    "facing=south,part=foot": { "model": "crownscoins:block/mint_house_royal_left", "y": 180 },
+    "facing=west,part=foot": { "model": "crownscoins:block/mint_house_royal_left", "y": 270 },
+    "facing=north,part=head": { "model": "crownscoins:block/mint_house_furnace_left" },
+    "facing=east,part=head": { "model": "crownscoins:block/mint_house_furnace_left", "y": 90 },
+    "facing=south,part=head": { "model": "crownscoins:block/mint_house_furnace_left", "y": 180 },
+    "facing=west,part=head": { "model": "crownscoins:block/mint_house_furnace_left", "y": 270 }
   }
 }

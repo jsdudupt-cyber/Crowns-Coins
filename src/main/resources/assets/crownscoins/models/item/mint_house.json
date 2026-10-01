@@ -1,5 +1,5 @@
 {
-  "parent": "crownscoins:block/mint_house",
+  "parent": "crownscoins:block/mint_house_royal_left",
   "gui_light": "front",
   "display": {
     "gui": {

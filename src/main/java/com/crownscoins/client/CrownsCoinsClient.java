@@ -19,6 +19,7 @@ public final class CrownsCoinsClient {
     @SubscribeEvent
     public static void registerMenuScreens(RegisterMenuScreensEvent event) {
         event.register(CrownsCoins.KINGDOM_CREATION_MENU.get(), KingdomCreationScreen::new);
+        event.register(CrownsCoins.MINT_FURNACE_MENU.get(), MintFurnaceScreen::new);
         event.register(CrownsCoins.MINT_HOUSE_MENU.get(), MintHouseScreen::new);
         event.register(CrownsCoins.CURRENCY_EXCHANGE_MENU.get(), CurrencyExchangeScreen::new);
     }
@@ -34,6 +35,7 @@ public final class CrownsCoinsClient {
     @SubscribeEvent
     public static void registerCoinModelProperties(RegisterSelectItemModelPropertyEvent event) {
         event.register(Identifier.fromNamespaceAndPath(CrownsCoins.MOD_ID, "coin_style"), CoinDataSelectProperty.STYLE_TYPE);
+        event.register(Identifier.fromNamespaceAndPath(CrownsCoins.MOD_ID, "coin_shape"), CoinDataSelectProperty.SHAPE_TYPE);
         event.register(Identifier.fromNamespaceAndPath(CrownsCoins.MOD_ID, "coin_crest"), CoinDataSelectProperty.CREST_TYPE);
         event.register(Identifier.fromNamespaceAndPath(CrownsCoins.MOD_ID, "coin_symbol_one"), CoinDataSelectProperty.SYMBOL_ONE_TYPE);
         event.register(Identifier.fromNamespaceAndPath(CrownsCoins.MOD_ID, "coin_symbol_two"), CoinDataSelectProperty.SYMBOL_TWO_TYPE);

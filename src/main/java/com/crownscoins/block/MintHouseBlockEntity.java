@@ -1,6 +1,10 @@
 package com.crownscoins.block;
 
 import com.crownscoins.CrownsCoins;
+import com.crownscoins.kingdom.Kingdom;
+import com.crownscoins.kingdom.KingdomSavedData;
+import com.crownscoins.menu.MintHouseMenu;
+import com.mojang.serialization.Codec;
 import java.util.Optional;
 import java.util.UUID;
 import net.minecraft.core.BlockPos;
@@ -8,8 +12,12 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
@@ -26,13 +34,24 @@ import net.minecraft.world.level.storage.ValueOutput;
 public final class MintHouseBlockEntity extends BlockEntity implements Container {
     /** One simple-chest page, reserved for the three Crowns & Coins denominations. */
     public static final int COIN_STORAGE_SLOTS = 27;
+    private static final int FURNACE_TICKS_PER_COIN = 20;
 
     private UUID kingdomId;
     private final NonNullList<ItemStack> coinStorage = NonNullList.withSize(COIN_STORAGE_SLOTS, ItemStack.EMPTY);
+    /** Persistent input socket shared with the left-hand nugget furnace menu. */
+    private final SimpleContainer furnaceInput = new SimpleContainer(1) {
+        @Override
+        public void setChanged() {
+            super.setChanged();
+            MintHouseBlockEntity.this.setChanged();
+        }
+    };
+    private int furnaceTicks;
 
     public MintHouseBlockEntity(BlockPos pos, BlockState state) { super(CrownsCoins.MINT_HOUSE_ENTITY.get(), pos, state); }
     public Optional<UUID> kingdomId() { return Optional.ofNullable(kingdomId); }
     public void bind(UUID id) { kingdomId = id; setChanged(); }
+    public Container furnaceInput() { return furnaceInput; }
 
     /** Returns true for the three physical coin items accepted by the integrated chest. */
     public static boolean acceptsCoin(ItemStack stack) {
@@ -57,6 +76,67 @@ public final class MintHouseBlockEntity extends BlockEntity implements Container
             this.setChanged();
         }
         return remaining;
+    }
+
+    /** Runs only on the server. Nuggets slowly become clean round coins in the shared chest. */
+    public static void serverTick(Level level, BlockPos pos, BlockState state, MintHouseBlockEntity mintHouse) {
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        mintHouse.smeltOneCoin(serverLevel);
+    }
+
+    private void smeltOneCoin(ServerLevel level) {
+        ItemStack nuggets = furnaceInput.getItem(0);
+        Optional<Kingdom.Metal> metal = metalForNugget(nuggets);
+        Optional<Kingdom> kingdom = kingdomId().flatMap(id -> KingdomSavedData.get(level).find(id));
+        if (metal.isEmpty() || kingdom.isEmpty() || nuggets.getCount() < MintHouseMenu.nuggetsPerCoin(metal.get())) {
+            furnaceTicks = 0;
+            return;
+        }
+
+        furnaceTicks++;
+        if (furnaceTicks < FURNACE_TICKS_PER_COIN) {
+            return;
+        }
+
+        ItemStack baseCoin = MintHouseMenu.createBaseCoin(kingdom.get(), metal.get());
+        if (!canStoreCoins(baseCoin)) {
+            furnaceTicks = FURNACE_TICKS_PER_COIN;
+            return;
+        }
+
+        nuggets.shrink(MintHouseMenu.nuggetsPerCoin(metal.get()));
+        if (nuggets.isEmpty()) {
+            furnaceInput.setItem(0, ItemStack.EMPTY);
+        } else {
+            furnaceInput.setChanged();
+        }
+        storeCoins(baseCoin);
+        furnaceTicks = 0;
+        setChanged();
+    }
+
+    private static Optional<Kingdom.Metal> metalForNugget(ItemStack stack) {
+        if (stack.is(Items.COPPER_NUGGET)) return Optional.of(Kingdom.Metal.COPPER);
+        if (stack.is(Items.IRON_NUGGET)) return Optional.of(Kingdom.Metal.IRON);
+        if (stack.is(Items.GOLD_NUGGET)) return Optional.of(Kingdom.Metal.GOLD);
+        return Optional.empty();
+    }
+
+    private boolean canStoreCoins(ItemStack stack) {
+        int remaining = stack.getCount();
+        for (ItemStack target : coinStorage) {
+            if (ItemStack.isSameItemSameComponents(target, stack)) {
+                remaining -= Math.max(0, target.getMaxStackSize() - target.getCount());
+            }
+        }
+        for (ItemStack target : coinStorage) {
+            if (target.isEmpty()) {
+                remaining -= stack.getMaxStackSize();
+            }
+        }
+        return remaining <= 0;
     }
 
     @Override
@@ -126,6 +206,8 @@ public final class MintHouseBlockEntity extends BlockEntity implements Container
     public void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
         kingdomId = input.read("kingdom_id", UUIDUtil.CODEC).orElse(null);
+        furnaceInput.setItem(0, input.read("furnace_input", ItemStack.CODEC).orElse(ItemStack.EMPTY));
+        furnaceTicks = input.read("furnace_ticks", Codec.INT).orElse(0);
         for (int slot = 0; slot < COIN_STORAGE_SLOTS; slot++) {
             this.coinStorage.set(slot, ItemStack.EMPTY);
         }
@@ -136,6 +218,8 @@ public final class MintHouseBlockEntity extends BlockEntity implements Container
     public void saveAdditional(ValueOutput output) {
         super.saveAdditional(output);
         output.storeNullable("kingdom_id", UUIDUtil.CODEC, kingdomId);
+        output.store("furnace_input", ItemStack.CODEC, furnaceInput.getItem(0));
+        output.store("furnace_ticks", Codec.INT, furnaceTicks);
         ContainerHelper.saveAllItems(output, this.coinStorage);
     }
 

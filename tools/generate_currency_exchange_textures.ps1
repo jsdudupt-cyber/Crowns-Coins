@@ -225,29 +225,5 @@ function Save-ExchangeItem() {
     }
 }
 
-function Save-CopperNugget() {
-    $bitmap = [System.Drawing.Bitmap]::new(16, 16, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
-    $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-    try {
-        $graphics.Clear($palette.Transparent)
-        $graphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceCopy
-        $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::None
-        # An irregular, compact lump: deliberately distinct from raw copper ore.
-        Paint-Rect $graphics $palette.CopperDark 4 4 8 8
-        Paint-Rect $graphics $palette.CopperDark 3 6 10 5
-        Paint-Rect $graphics $palette.CopperDark 5 3 5 10
-        Paint-Rect $graphics $palette.Copper 5 5 6 6
-        Paint-Rect $graphics $palette.Copper 4 7 8 3
-        Paint-Rect $graphics $palette.CopperLight 6 5 3 2
-        Paint-Rect $graphics $palette.CopperLight 5 7 2 2
-        Paint-Rect $graphics $palette.Brass 9 9 2 1
-        $bitmap.Save((Join-Path $itemRoot 'copper_nugget.png'), [System.Drawing.Imaging.ImageFormat]::Png)
-    } finally {
-        $graphics.Dispose()
-        $bitmap.Dispose()
-    }
-}
-
 Save-ExchangeItem
-Save-CopperNugget
-Write-Output 'Created Currency Exchange faces, inventory sprite, and copper nugget texture.'
+Write-Output 'Created Currency Exchange faces and inventory sprite.'

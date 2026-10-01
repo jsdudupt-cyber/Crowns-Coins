@@ -4,8 +4,6 @@ import com.crownscoins.kingdom.Kingdom;
 import com.crownscoins.kingdom.KingdomCrest;
 import com.crownscoins.menu.KingdomCreationMenu;
 import com.crownscoins.network.CreateKingdomPayload;
-import java.util.ArrayList;
-import java.util.List;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -22,15 +20,12 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
  * independently validates and persists all kingdom data.</p>
  */
 public final class KingdomCreationScreen extends AbstractContainerScreen<KingdomCreationMenu> {
-    private static final int FIELD_WIDTH = 190;
+    private static final int FIELD_WIDTH = 220;
     private static final int FIELD_HEIGHT = 20;
-    private static final int SCREEN_HEIGHT = 330;
+    private static final int SCREEN_HEIGHT = 116;
 
     private EditBox kingdomName;
-    private EditBox currencyName;
-    private final List<Button> crestButtons = new ArrayList<>();
     private Button createButton;
-    private KingdomCrest selectedCrest = KingdomCrest.ROYAL_CROWN;
     private Component status = Component.empty();
 
     public KingdomCreationScreen(KingdomCreationMenu menu, Inventory inventory, Component title) {
@@ -44,54 +39,19 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
         int top = this.topPos;
 
         Component kingdomNameLabel = gui("kingdom_name");
-        this.kingdomName = this.addRenderableWidget(new EditBox(this.font, left, top + 18, FIELD_WIDTH, FIELD_HEIGHT, kingdomNameLabel));
+        this.kingdomName = this.addRenderableWidget(new EditBox(this.font, left, top + 43, FIELD_WIDTH, FIELD_HEIGHT, kingdomNameLabel));
         this.kingdomName.setMaxLength(Kingdom.MAX_KINGDOM_NAME_LENGTH);
         this.kingdomName.setHint(kingdomNameLabel);
         this.kingdomName.setResponder(value -> this.refreshCreateButton());
 
-        Component currencyNameLabel = gui("currency_name");
-        this.currencyName = this.addRenderableWidget(new EditBox(this.font, left, top + 58, FIELD_WIDTH, FIELD_HEIGHT, currencyNameLabel));
-        this.currencyName.setMaxLength(Kingdom.MAX_CURRENCY_NAME_LENGTH);
-        this.currencyName.setHint(currencyNameLabel);
-        this.currencyName.setResponder(value -> this.refreshCreateButton());
-
-        this.crestButtons.clear();
-        KingdomCrest[] crests = KingdomCrest.values();
-        int crestTop = top + 150;
-        for (int index = 0; index < crests.length; index++) {
-            KingdomCrest crest = crests[index];
-            int x = left + (index % 5) * 38;
-            int y = crestTop + (index / 5) * 21;
-            Button button = this.addRenderableWidget(Button.builder(Component.empty(), ignored -> selectCrest(crest))
-                .bounds(x, y, 36, 20)
-                .build());
-            this.crestButtons.add(button);
-        }
-        this.refreshCrestButtons();
-
         this.createButton = this.addRenderableWidget(Button.builder(gui("create_kingdom"), button -> submit())
-            .bounds(left, top + 282, 92, 20)
+            .bounds(left + 25, top + 76, 82, 20)
             .build());
         this.addRenderableWidget(Button.builder(gui("cancel"), button -> this.onClose())
-            .bounds(left + 98, top + 282, 92, 20)
+            .bounds(left + 113, top + 76, 82, 20)
             .build());
         this.refreshCreateButton();
         this.setInitialFocus(this.kingdomName);
-    }
-
-    private void selectCrest(KingdomCrest crest) {
-        this.selectedCrest = crest;
-        this.status = Component.empty();
-        this.refreshCrestButtons();
-    }
-
-    private void refreshCrestButtons() {
-        KingdomCrest[] crests = KingdomCrest.values();
-        for (int index = 0; index < this.crestButtons.size(); index++) {
-            KingdomCrest crest = crests[index];
-            String marker = crest == this.selectedCrest ? ">" : "";
-            this.crestButtons.get(index).setMessage(Component.literal(marker + shortLabel(crest)));
-        }
     }
 
     private void refreshCreateButton() {
@@ -101,8 +61,7 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
     }
 
     private boolean isLocallyValid() {
-        return validLength(this.kingdomName, Kingdom.MIN_KINGDOM_NAME_LENGTH, Kingdom.MAX_KINGDOM_NAME_LENGTH)
-            && validLength(this.currencyName, Kingdom.MIN_CURRENCY_NAME_LENGTH, Kingdom.MAX_CURRENCY_NAME_LENGTH);
+        return validLength(this.kingdomName, Kingdom.MIN_KINGDOM_NAME_LENGTH, Kingdom.MAX_KINGDOM_NAME_LENGTH);
     }
 
     private static boolean validLength(EditBox field, int minimum, int maximum) {
@@ -121,8 +80,7 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
 
         KingdomDraft draft = new KingdomDraft(
             this.kingdomName.getValue().strip(),
-            this.currencyName.getValue().strip(),
-            this.selectedCrest,
+            defaultCurrencyName(this.kingdomName.getValue()),
             Kingdom.IRON_COIN_VALUE,
             Kingdom.COPPER_COIN_VALUE,
             Kingdom.GOLD_COIN_VALUE
@@ -131,7 +89,7 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
             this.menu.containerId,
             draft.kingdomName(),
             draft.currencyName(),
-            draft.crest().id(),
+            KingdomCrest.ROYAL_CROWN.id(),
             draft.ironValue(),
             draft.copperValue(),
             draft.goldValue()
@@ -163,9 +121,6 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
         if (this.kingdomName != null && this.kingdomName.isFocused()) {
             return this.kingdomName;
         }
-        if (this.currencyName != null && this.currencyName.isFocused()) {
-            return this.currencyName;
-        }
         return null;
     }
 
@@ -173,15 +128,13 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         int left = this.leftPos;
         int top = this.topPos;
-        graphics.fill(left, top, left + FIELD_WIDTH + 20, top + SCREEN_HEIGHT, 0xD0181A20);
+        graphics.fill(left, top, left + FIELD_WIDTH + 20, top + SCREEN_HEIGHT, 0xE0181A20);
         graphics.outline(left, top, FIELD_WIDTH + 20, SCREEN_HEIGHT, 0xFFB89445);
 
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         graphics.centeredText(this.font, this.title, this.width / 2, top + 8, 0xFFFFD878);
-        graphics.centeredText(this.font, gui("economy_fixed"), this.width / 2, top + 91, 0xFFFFD878);
-        graphics.centeredText(this.font, gui("economy_example"), this.width / 2, top + 106, 0xFFCED2D4);
-        graphics.centeredText(this.font, gui("choose_crest"), this.width / 2, top + 134, 0xFFB8B8B8);
-        graphics.centeredText(this.font, this.status, this.width / 2, top + 310, 0xFFFFD878);
+        graphics.centeredText(this.font, gui("first_kingdom_prompt"), this.width / 2, top + 26, 0xFFCED2D4);
+        graphics.centeredText(this.font, this.status, this.width / 2, top + 101, 0xFFFFD878);
     }
 
     @Override
@@ -193,16 +146,21 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
         return Component.translatable("gui.crownscoins." + key, arguments);
     }
 
-    private static String shortLabel(KingdomCrest crest) {
-        String name = Component.translatable(crest.translationKey()).getString();
-        return name.substring(0, Math.min(4, name.length()));
+    /** The first visit names only the realm; its starter currency is automatic. */
+    private static String defaultCurrencyName(String kingdomName) {
+        String prefix = "Moeda de ";
+        String name = kingdomName.strip();
+        int allowedNameLength = Kingdom.MAX_CURRENCY_NAME_LENGTH - prefix.codePointCount(0, prefix.length());
+        if (name.codePointCount(0, name.length()) > allowedNameLength) {
+            name = name.substring(0, name.offsetByCodePoints(0, allowedNameLength));
+        }
+        return prefix + name;
     }
 
     /** Bounded client draft; the server revalidates every field before persistence. */
     public record KingdomDraft(
         String kingdomName,
         String currencyName,
-        KingdomCrest crest,
         int ironValue,
         int copperValue,
         int goldValue

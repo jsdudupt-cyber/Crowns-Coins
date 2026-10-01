@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "crownscoins:item/copper_nugget"
+    "layer0": "crownscoins:item/coin_shape/gold_05_hexagon"
   }
 }

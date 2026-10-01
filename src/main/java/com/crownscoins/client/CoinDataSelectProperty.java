@@ -14,15 +14,17 @@ import org.jspecify.annotations.Nullable;
 
 /** Client-only selectors read only the network-synchronized CoinData component. */
 public record CoinDataSelectProperty(Selector selector) implements SelectItemModelProperty<Integer> {
-    private static final Codec<Integer> VALUE_CODEC = Codec.intRange(1, CoinData.MAX_STYLE_ID);
-    public static final Type<CoinDataSelectProperty, Integer> STYLE_TYPE = createType(Selector.STYLE);
-    public static final Type<CoinDataSelectProperty, Integer> CREST_TYPE = createType(Selector.CREST);
-    public static final Type<CoinDataSelectProperty, Integer> SYMBOL_ONE_TYPE = createType(Selector.SYMBOL_ONE);
-    public static final Type<CoinDataSelectProperty, Integer> SYMBOL_TWO_TYPE = createType(Selector.SYMBOL_TWO);
-    public static final Type<CoinDataSelectProperty, Integer> SYMBOL_THREE_TYPE = createType(Selector.SYMBOL_THREE);
+    private static final Codec<Integer> STYLE_VALUE_CODEC = Codec.intRange(1, CoinData.MAX_STYLE_ID);
+    private static final Codec<Integer> SHAPE_VALUE_CODEC = Codec.intRange(CoinData.DEFAULT_SHAPE_ID, CoinData.MAX_SHAPE_ID);
+    public static final Type<CoinDataSelectProperty, Integer> STYLE_TYPE = createType(Selector.STYLE, STYLE_VALUE_CODEC);
+    public static final Type<CoinDataSelectProperty, Integer> SHAPE_TYPE = createType(Selector.SHAPE, SHAPE_VALUE_CODEC);
+    public static final Type<CoinDataSelectProperty, Integer> CREST_TYPE = createType(Selector.CREST, STYLE_VALUE_CODEC);
+    public static final Type<CoinDataSelectProperty, Integer> SYMBOL_ONE_TYPE = createType(Selector.SYMBOL_ONE, STYLE_VALUE_CODEC);
+    public static final Type<CoinDataSelectProperty, Integer> SYMBOL_TWO_TYPE = createType(Selector.SYMBOL_TWO, STYLE_VALUE_CODEC);
+    public static final Type<CoinDataSelectProperty, Integer> SYMBOL_THREE_TYPE = createType(Selector.SYMBOL_THREE, STYLE_VALUE_CODEC);
 
-    private static Type<CoinDataSelectProperty, Integer> createType(Selector selector) {
-        return Type.create(MapCodec.unit(new CoinDataSelectProperty(selector)), VALUE_CODEC);
+    private static Type<CoinDataSelectProperty, Integer> createType(Selector selector, Codec<Integer> valueCodec) {
+        return Type.create(MapCodec.unit(new CoinDataSelectProperty(selector)), valueCodec);
     }
 
     @Override
@@ -33,6 +35,7 @@ public record CoinDataSelectProperty(Selector selector) implements SelectItemMod
         }
         return switch (selector) {
             case STYLE -> data.styleId();
+            case SHAPE -> data.shapeId();
             // Every coin face uses the Royal Crown as its fixed central mark.
             // The kingdom crest remains in CoinData for provenance and tooltips.
             case CREST -> Symbol.CROWN.id();
@@ -48,13 +51,14 @@ public record CoinDataSelectProperty(Selector selector) implements SelectItemMod
 
     @Override
     public Codec<Integer> valueCodec() {
-        return VALUE_CODEC;
+        return selector == Selector.SHAPE ? SHAPE_VALUE_CODEC : STYLE_VALUE_CODEC;
     }
 
     @Override
     public Type<CoinDataSelectProperty, Integer> type() {
         return switch (selector) {
             case STYLE -> STYLE_TYPE;
+            case SHAPE -> SHAPE_TYPE;
             case CREST -> CREST_TYPE;
             case SYMBOL_ONE -> SYMBOL_ONE_TYPE;
             case SYMBOL_TWO -> SYMBOL_TWO_TYPE;
@@ -64,6 +68,7 @@ public record CoinDataSelectProperty(Selector selector) implements SelectItemMod
 
     public enum Selector {
         STYLE,
+        SHAPE,
         CREST,
         SYMBOL_ONE,
         SYMBOL_TWO,

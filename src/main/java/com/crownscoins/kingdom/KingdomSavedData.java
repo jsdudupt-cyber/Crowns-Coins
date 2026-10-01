@@ -157,6 +157,42 @@ public final class KingdomSavedData extends SavedData {
     }
 
     /**
+     * Renames one kingdom while preserving its UUID, members, crest and
+     * economy. The founder-only check and canonical-name index update live
+     * together so a rename can never create duplicate kingdoms by name.
+     */
+    public Optional<Kingdom> updateKingdomName(UUID kingdomId, UUID requesterId, String kingdomName) {
+        Objects.requireNonNull(kingdomId, "kingdomId");
+        Objects.requireNonNull(requesterId, "requesterId");
+        Kingdom current = kingdomsById.get(kingdomId);
+        if (current == null || !current.isFounder(requesterId)) {
+            return Optional.empty();
+        }
+
+        final String replacementCanonicalName;
+        final Kingdom replacement;
+        try {
+            replacementCanonicalName = Kingdom.canonicalName(kingdomName);
+            UUID existingId = kingdomByCanonicalName.get(replacementCanonicalName);
+            if (existingId != null && !existingId.equals(kingdomId)) {
+                return Optional.empty();
+            }
+            replacement = current.withName(kingdomName);
+        } catch (IllegalArgumentException | NullPointerException ignored) {
+            return Optional.empty();
+        }
+
+        String currentCanonicalName = Kingdom.canonicalName(current.name());
+        kingdomsById.put(kingdomId, replacement);
+        if (!currentCanonicalName.equals(replacementCanonicalName)) {
+            kingdomByCanonicalName.remove(currentCanonicalName, kingdomId);
+            kingdomByCanonicalName.put(replacementCanonicalName, kingdomId);
+        }
+        setDirty();
+        return Optional.of(replacement);
+    }
+
+    /**
      * Adds a player to a kingdom only when they do not already belong to another one.
      * It is ready for future member-management UI without weakening the one-kingdom
      * rule. Returns {@code true} only when a membership was actually added.

@@ -1,6 +1,21 @@
 {
   "model": {
-    "type": "minecraft:model",
-    "model": "crownscoins:item/coin/copper_04_crown"
+    "type": "minecraft:select",
+    "property": "crownscoins:coin_shape",
+    "cases": [
+      { "when": 1, "model": { "type": "minecraft:model", "model": "crownscoins:item/coin_shape/copper_01_round" } },
+      { "when": 2, "model": { "type": "minecraft:model", "model": "crownscoins:item/coin_shape/copper_02_octagon" } },
+      { "when": 3, "model": { "type": "minecraft:model", "model": "crownscoins:item/coin_shape/copper_03_square_hole" } },
+      { "when": 4, "model": { "type": "minecraft:model", "model": "crownscoins:item/coin_shape/copper_04_scalloped" } },
+      { "when": 5, "model": { "type": "minecraft:model", "model": "crownscoins:item/coin_shape/copper_05_hexagon" } },
+      { "when": 6, "model": { "type": "minecraft:model", "model": "crownscoins:item/coin_shape/copper_06_chipped" } },
+      { "when": 7, "model": { "type": "minecraft:model", "model": "crownscoins:item/coin_shape/copper_07_oval" } },
+      { "when": 8, "model": { "type": "minecraft:model", "model": "crownscoins:item/coin_shape/copper_08_shield" } },
+      { "when": 9, "model": { "type": "minecraft:model", "model": "crownscoins:item/coin_shape/copper_09_triangle" } },
+      { "when": 10, "model": { "type": "minecraft:model", "model": "crownscoins:item/coin_shape/copper_10_dodecagon_chipped" } },
+      { "when": 11, "model": { "type": "minecraft:model", "model": "crownscoins:item/coin_shape/copper_11_royal_11" } },
+      { "when": 12, "model": { "type": "minecraft:model", "model": "crownscoins:item/coin_shape/copper_12_royal_12" } }
+    ],
+    "fallback": { "type": "minecraft:model", "model": "crownscoins:item/coin_shape/copper_01_round" }
   }
 }

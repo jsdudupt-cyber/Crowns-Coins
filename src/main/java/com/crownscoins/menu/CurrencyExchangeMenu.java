@@ -2,8 +2,6 @@ package com.crownscoins.menu;
 
 import com.crownscoins.CrownsCoins;
 import com.crownscoins.coin.CoinData;
-import com.crownscoins.kingdom.Symbol;
-import java.util.List;
 import java.util.Objects;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
@@ -229,9 +227,11 @@ public final class CurrencyExchangeMenu extends AbstractContainerMenu {
             original.kingdomCrest(),
             exchange.targetMaterial(),
             (int) targetValue,
-            // Converted coins are normalized to the current clean-coin format.
-            Symbol.CROWN.id(),
-            List.of()
+            // Preserve every visual/provenance field when a denomination is
+            // converted, including old symbols and the new shape selection.
+            original.styleId(),
+            original.shapeId(),
+            original.symbols()
         ));
         output.set(DataComponents.CUSTOM_NAME, Component.literal(original.currencyName()));
         return output;
@@ -291,7 +291,7 @@ public final class CurrencyExchangeMenu extends AbstractContainerMenu {
 
     private static Item nuggetFor(CoinData.Material material) {
         return switch (material) {
-            case COPPER -> CrownsCoins.COPPER_NUGGET.get();
+            case COPPER -> Items.COPPER_NUGGET;
             case IRON -> Items.IRON_NUGGET;
             case GOLD -> Items.GOLD_NUGGET;
         };

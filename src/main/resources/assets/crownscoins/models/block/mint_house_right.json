@@ -1,0 +1,20 @@
+{
+  "textures": {
+    "particle": "crownscoins:block/mint_house_side",
+    "front": "crownscoins:block/mint_house_side",
+    "back": "crownscoins:block/mint_house_back",
+    "side": "crownscoins:block/mint_house_side",
+    "top": "crownscoins:block/mint_house_top",
+    "bottom": "crownscoins:block/mint_house_bottom",
+    "metal": "crownscoins:block/mint_house_metal",
+    "press": "crownscoins:block/mint_house_press"
+  },
+  "elements": [
+    { "from": [0, 0, 0], "to": [16, 11, 16], "faces": { "down": {"texture":"#bottom"}, "up": {"texture":"#top"}, "north": {"texture":"#front"}, "south": {"texture":"#back"}, "east": {"texture":"#side"}, "west": {"texture":"#side"} } },
+    { "from": [0, 11, 0], "to": [16, 13, 16], "faces": { "down": {"texture":"#bottom"}, "up": {"texture":"#top"}, "north": {"texture":"#metal"}, "south": {"texture":"#metal"}, "east": {"texture":"#metal"}, "west": {"texture":"#metal"} } },
+    { "from": [12, 13, 5], "to": [15, 25, 11], "faces": { "down": {"texture":"#metal"}, "up": {"texture":"#metal"}, "north": {"texture":"#metal"}, "south": {"texture":"#metal"}, "east": {"texture":"#metal"}, "west": {"texture":"#metal"} } },
+    { "from": [0, 25, 6], "to": [16, 28, 10], "faces": { "down": {"texture":"#metal"}, "up": {"texture":"#metal"}, "north": {"texture":"#metal"}, "south": {"texture":"#metal"}, "east": {"texture":"#metal"}, "west": {"texture":"#metal"} } },
+    { "from": [0, 13, 4], "to": [6, 15, 12], "faces": { "down": {"texture":"#metal"}, "up": {"texture":"#press"}, "north": {"texture":"#metal"}, "south": {"texture":"#metal"}, "east": {"texture":"#metal"}, "west": {"texture":"#metal"} } },
+    { "from": [0, 15, 6], "to": [3, 19, 10], "faces": { "down": {"texture":"#metal"}, "up": {"texture":"#press"}, "north": {"texture":"#metal"}, "south": {"texture":"#metal"}, "east": {"texture":"#metal"}, "west": {"texture":"#metal"} } }
+  ]
+}

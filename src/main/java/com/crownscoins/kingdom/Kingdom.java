@@ -259,6 +259,21 @@ public final class Kingdom {
         );
     }
 
+    /* Package-private: SavedData owns mutations so it can maintain the name index. */
+    Kingdom withName(String replacementName) {
+        return new Kingdom(
+            this.id,
+            this.founder,
+            this.members,
+            replacementName,
+            this.currencyName,
+            this.crest,
+            this.ironValue,
+            this.copperValue,
+            this.goldValue
+        );
+    }
+
     /* Package-private: upgrades legacy saves to the common denomination. */
     Kingdom withStandardEconomy() {
         return new Kingdom(

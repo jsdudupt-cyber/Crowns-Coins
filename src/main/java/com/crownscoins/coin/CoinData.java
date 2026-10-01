@@ -28,13 +28,18 @@ public record CoinData(
     Material material,
     int value,
     int styleId,
+    int shapeId,
     List<Symbol> symbols
 ) implements TooltipProvider {
     /** Legacy item data can contain up to three symbols; new coins use none. */
     public static final int MAX_SYMBOLS = 3;
     public static final int MAX_STYLE_ID = 25;
+    /** Shape zero is reserved for coins minted before selectable shapes existed. */
+    public static final int DEFAULT_SHAPE_ID = 0;
+    public static final int MAX_SHAPE_ID = 12;
     public static final int MAX_VALUE = 1_000_000;
     private static final Codec<List<Symbol>> SYMBOLS_CODEC = Symbol.CODEC.listOf().validate(CoinData::validateSymbols);
+    private static final Codec<Integer> SHAPE_ID_CODEC = Codec.intRange(DEFAULT_SHAPE_ID, MAX_SHAPE_ID);
 
     public static final Codec<CoinData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
         UUIDUtil.CODEC.fieldOf("kingdom_id").forGetter(CoinData::kingdomId),
@@ -44,9 +49,39 @@ public record CoinData(
         Material.CODEC.fieldOf("material").forGetter(CoinData::material),
         Codec.intRange(1, MAX_VALUE).fieldOf("value").forGetter(CoinData::value),
         Codec.intRange(1, MAX_STYLE_ID).fieldOf("style_id").forGetter(CoinData::styleId),
+        // Optional so all pre-shape item stacks deserialize as the legacy
+        // neutral form rather than failing to load a saved world.
+        SHAPE_ID_CODEC.optionalFieldOf("shape_id", DEFAULT_SHAPE_ID).forGetter(CoinData::shapeId),
         SYMBOLS_CODEC.fieldOf("symbols").forGetter(CoinData::symbols)
     ).apply(instance, CoinData::new));
     public static final StreamCodec<RegistryFriendlyByteBuf, CoinData> STREAM_CODEC = ByteBufCodecs.fromCodecWithRegistries(CODEC);
+
+    /**
+     * Source-compatible constructor for coins created before selectable shapes.
+     * Persisted data likewise defaults through the optional codec field above.
+     */
+    public CoinData(
+        UUID kingdomId,
+        String kingdomName,
+        String currencyName,
+        Symbol kingdomCrest,
+        Material material,
+        int value,
+        int styleId,
+        List<Symbol> symbols
+    ) {
+        this(
+            kingdomId,
+            kingdomName,
+            currencyName,
+            kingdomCrest,
+            material,
+            value,
+            styleId,
+            DEFAULT_SHAPE_ID,
+            symbols
+        );
+    }
 
     public CoinData {
         kingdomId = Objects.requireNonNull(kingdomId, "kingdomId");
@@ -60,10 +95,18 @@ public record CoinData(
         if (styleId < 1 || styleId > MAX_STYLE_ID) {
             throw new IllegalArgumentException("Coin style is out of range");
         }
+        if (!isValidShapeId(shapeId)) {
+            throw new IllegalArgumentException("Coin shape is out of range");
+        }
         symbols = List.copyOf(Objects.requireNonNull(symbols, "symbols"));
         if (validateSymbols(symbols).error().isPresent()) {
             throw new IllegalArgumentException("Coin symbols are invalid");
         }
+    }
+
+    /** Returns whether an untrusted request refers to a supported coin shape. */
+    public static boolean isValidShapeId(int shapeId) {
+        return shapeId >= DEFAULT_SHAPE_ID && shapeId <= MAX_SHAPE_ID;
     }
 
     private static DataResult<List<Symbol>> validateSymbols(List<Symbol> symbols) {
@@ -101,6 +144,12 @@ public record CoinData(
         tooltip.accept(Component.translatable("tooltip.crownscoins.kingdom", kingdomName));
         tooltip.accept(Component.translatable("tooltip.crownscoins.value", value));
         tooltip.accept(Component.translatable("tooltip.crownscoins.metal", materialName(material)));
+        if (shapeId != DEFAULT_SHAPE_ID) {
+            tooltip.accept(Component.translatable(
+                "tooltip.crownscoins.shape",
+                Component.translatable("gui.crownscoins.coin_shape." + shapeId)
+            ));
+        }
     }
 
     private static Component materialName(Material material) {
