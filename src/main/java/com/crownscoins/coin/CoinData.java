@@ -162,7 +162,13 @@ public record CoinData(
         COPPER,
         GOLD;
 
-        public static final Codec<Material> CODEC = Codec.STRING.xmap(Material::valueOf, Material::name);
+        public static final Codec<Material> CODEC = Codec.STRING.comapFlatMap(name -> {
+            try {
+                return DataResult.success(Material.valueOf(name));
+            } catch (IllegalArgumentException ignored) {
+                return DataResult.error(() -> "Unknown coin material: " + name);
+            }
+        }, Material::name);
 
         public String translationKey() {
             return name().toLowerCase(Locale.ROOT);

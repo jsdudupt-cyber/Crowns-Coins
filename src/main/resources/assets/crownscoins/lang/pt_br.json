@@ -170,5 +170,15 @@
   "crest.crownscoins.ancient_tree": "Árvore ancestral",
   "crest.crownscoins.sun_and_moon": "Sol e lua",
   "crest.crownscoins.stag": "Cervo",
-  "crest.crownscoins.ship": "Navio"
+  "crest.crownscoins.ship": "Navio",
+  "menu.crownscoins.mint_furnace": "Fornalha de Moedas",
+  "message.crownscoins.not_member": "Somente membros deste reino podem usar esta Casa da Moeda.",
+  "message.crownscoins.kingdom_creation_rejected": "O pedido de criação do reino foi recusado.",
+  "message.crownscoins.kingdom_created": "Reino criado. Esta Casa da Moeda agora pertence a %s.",
+  "gui.crownscoins.currency_settings": "Configuração da moeda",
+  "gui.crownscoins.settings_title": "CONFIGURAÇÃO DA MOEDA",
+  "gui.crownscoins.currency_label": "Nome da moeda",
+  "gui.crownscoins.save_name": "Salvar nome",
+  "gui.crownscoins.currency_note": "Este nome aparecerá nas moedas do reino.",
+  "gui.crownscoins.back_to_press": "Voltar à prensa"
 }

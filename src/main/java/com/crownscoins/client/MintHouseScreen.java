@@ -193,7 +193,7 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
                     MintHouseLayout.SETTINGS_GEAR_WIDTH,
                     MintHouseLayout.SETTINGS_GEAR_HEIGHT
                 )
-                .tooltip(Tooltip.create(Component.literal("Configuração da moeda")))
+                .tooltip(Tooltip.create(gui("currency_settings")))
                 .build()));
         }
 
@@ -830,14 +830,14 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     }
 
     private void renderSettingsText(GuiGraphicsExtractor graphics, int left, int top) {
-        graphics.centeredText(this.font, Component.literal("CONFIGURAÇÃO DA MOEDA"), left + SCREEN_WIDTH / 2, top + 96, GOLD);
-        graphics.centeredText(this.font, Component.literal("Nome da moeda"), left + SCREEN_WIDTH / 2, top + 122, TEXT);
-        renderActionButton(graphics, left + 181, top + 162, 118, 18, Component.literal("Salvar nome"),
+        graphics.centeredText(this.font, gui("settings_title"), left + SCREEN_WIDTH / 2, top + 96, GOLD);
+        graphics.centeredText(this.font, gui("currency_label"), left + SCREEN_WIDTH / 2, top + 122, TEXT);
+        renderActionButton(graphics, left + 181, top + 162, 118, 18, gui("save_name"),
             this.saveCurrencyButton != null && this.saveCurrencyButton.active, false);
-        graphics.centeredText(this.font, Component.literal("Este nome aparecerá nas moedas do reino."),
+        graphics.centeredText(this.font, gui("currency_note"),
             left + SCREEN_WIDTH / 2, top + 195, SUBTLE_TEXT);
         renderActionButton(graphics, left + MintHouseLayout.BACK_X, top + MintHouseLayout.BACK_Y,
-            MintHouseLayout.BACK_WIDTH, MintHouseLayout.BACK_HEIGHT, Component.literal("Voltar à prensa"), true, false);
+            MintHouseLayout.BACK_WIDTH, MintHouseLayout.BACK_HEIGHT, gui("back_to_press"), true, false);
     }
 
     /** Settings takes visual priority over all live slots from the workbench view. */

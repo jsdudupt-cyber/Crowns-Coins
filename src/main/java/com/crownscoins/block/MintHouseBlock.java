@@ -130,10 +130,15 @@ public final class MintHouseBlock extends BaseEntityBlock {
         // The left half is a simple nugget furnace. It is usable before binding,
         // but it waits to smelt until the right-hand press has a kingdom owner.
         if (state.getValue(PART) == BedPart.HEAD) {
+            var furnaceKingdom = mintHouse.kingdomId().flatMap(KingdomSavedData.get(serverLevel)::find);
+            if (furnaceKingdom.isPresent() && !furnaceKingdom.get().isMember(serverPlayer.getUUID())) {
+                serverPlayer.sendSystemMessage(Component.translatable("message.crownscoins.not_member"));
+                return InteractionResult.FAIL;
+            }
             serverPlayer.openMenu(
                 new SimpleMenuProvider(
                     (id, inventory, ignored) -> new MintFurnaceMenu(id, inventory, serverLevel, mintPos),
-                    Component.literal("Fornalha de Moedas")
+                    Component.translatable("menu.crownscoins.mint_furnace")
                 ),
                 buffer -> buffer.writeBlockPos(mintPos)
             );
@@ -164,6 +169,10 @@ public final class MintHouseBlock extends BaseEntityBlock {
                 return InteractionResult.FAIL;
             }
             boundKingdom = existing.get();
+            if (!boundKingdom.isMember(serverPlayer.getUUID())) {
+                serverPlayer.sendSystemMessage(Component.translatable("message.crownscoins.not_member"));
+                return InteractionResult.FAIL;
+            }
         }
         serverPlayer.openMenu(
             new SimpleMenuProvider(

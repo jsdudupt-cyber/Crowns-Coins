@@ -161,8 +161,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             return baseCoinCountForMetal(metal);
         }
         ItemStack stack = this.materialSlot.getItem(MATERIAL_SLOT);
-        return stack.is(nuggetFor(metal)) || metalForBaseCoin(stack).filter(metal::equals).isPresent()
-            ? stack.getCount() : 0;
+        return stack.is(nuggetFor(metal)) ? stack.getCount() : 0;
     }
 
     /**
@@ -229,10 +228,12 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         ItemStack stack = slot.getItem();
         ItemStack result = stack.copy();
         boolean moved;
+        // The design table hides the backpack, so only the visible hotbar may receive items.
+        int playerTargetStart = designMode ? PLAYER_MAIN_END : PLAYER_SLOT_START;
         if (slotIndex == MATERIAL_SLOT) {
-            moved = this.moveItemStackTo(stack, PLAYER_SLOT_START, PLAYER_SLOT_END, true);
+            moved = this.moveItemStackTo(stack, playerTargetStart, PLAYER_SLOT_END, true);
         } else if (slotIndex >= COIN_STORAGE_SLOT_START && slotIndex < COIN_STORAGE_SLOT_END) {
-            moved = this.moveItemStackTo(stack, PLAYER_SLOT_START, PLAYER_SLOT_END, true);
+            moved = this.moveItemStackTo(stack, playerTargetStart, PLAYER_SLOT_END, true);
         } else if (acceptsInput(stack)) {
             moved = this.moveItemStackTo(stack, MATERIAL_SLOT, MATERIAL_SLOT + 1, false);
             if (!moved) {
@@ -340,7 +341,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
 
         Optional<MintRequest> request = validatePayload(player, payload.metalId(), payload.shapeId());
         if (request.isEmpty()) {
-            player.sendSystemMessage(Component.literal("Mint request was rejected."));
+            player.sendSystemMessage(Component.translatable("message.crownscoins.mint_rejected"));
             return;
         }
 
@@ -550,6 +551,10 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
     }
 
     private boolean moveBetweenPlayerRows(ItemStack stack, int slotIndex) {
+        if (designMode) {
+            // The backpack is hidden here; never move items into slots the player cannot see.
+            return false;
+        }
         if (slotIndex < PLAYER_MAIN_END) {
             return this.moveItemStackTo(stack, PLAYER_MAIN_END, PLAYER_SLOT_END, false);
         }
@@ -584,9 +589,12 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         return metalForMintingMaterial(stack).isPresent();
     }
 
-    /** The right press receives only round base coins; nuggets belong to the left furnace. */
+    /**
+     * The design table has no visible input socket: its base coins live in the
+     * internal chest. Only the (unused) compact press accepts a loose input.
+     */
     private boolean acceptsInput(ItemStack stack) {
-        return designMode ? metalForBaseCoin(stack).isPresent() : isMintingMaterial(stack);
+        return !designMode && isMintingMaterial(stack);
     }
 
     private static Optional<Kingdom.Metal> metalForMintingMaterial(ItemStack stack) {

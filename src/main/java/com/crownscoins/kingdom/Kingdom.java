@@ -1,6 +1,7 @@
 package com.crownscoins.kingdom;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -34,17 +35,9 @@ public final class Kingdom {
      * Membership is encoded as UUIDs rather than player names so name changes do not
      * orphan a kingdom member.
      */
-    public static final Codec<Kingdom> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            UUIDUtil.CODEC.fieldOf("id").forGetter(Kingdom::id),
-            UUIDUtil.CODEC.fieldOf("founder").forGetter(Kingdom::founder),
-            UUIDUtil.CODEC.listOf().fieldOf("members").forGetter(Kingdom::memberList),
-            Codec.STRING.fieldOf("name").forGetter(Kingdom::name),
-            Codec.STRING.fieldOf("currency_name").forGetter(Kingdom::currencyName),
-            Symbol.CODEC.fieldOf("crest").forGetter(Kingdom::crest),
-            Codec.INT.fieldOf("iron_value").forGetter(Kingdom::ironValue),
-            Codec.INT.fieldOf("copper_value").forGetter(Kingdom::copperValue),
-            Codec.INT.fieldOf("gold_value").forGetter(Kingdom::goldValue)
-        ).apply(instance, Kingdom::fromPersistentData)
+    public static final Codec<Kingdom> CODEC = Stored.CODEC.flatXmap(
+        Stored::toKingdom,
+        kingdom -> DataResult.success(Stored.of(kingdom))
     );
 
     private final UUID id;
@@ -101,20 +94,6 @@ public final class Kingdom {
         }
         // Founder membership is an invariant, including for old/corrupted save files.
         this.members.add(this.founder);
-    }
-
-    private static Kingdom fromPersistentData(
-        UUID id,
-        UUID founder,
-        List<UUID> members,
-        String name,
-        String currencyName,
-        Symbol crest,
-        int ironValue,
-        int copperValue,
-        int goldValue
-    ) {
-        return new Kingdom(id, founder, members, name, currencyName, crest, ironValue, copperValue, goldValue);
     }
 
     public static Kingdom create(
@@ -298,6 +277,51 @@ public final class Kingdom {
     boolean removeMember(UUID playerId) {
         Objects.requireNonNull(playerId, "playerId");
         return !founder.equals(playerId) && members.remove(playerId);
+    }
+
+    /**
+     * Raw saved form. Invalid data becomes a normal codec error instead of an
+     * exception thrown while a world's saved data is being loaded.
+     */
+    private record Stored(
+        UUID id,
+        UUID founder,
+        List<UUID> members,
+        String name,
+        String currencyName,
+        Symbol crest,
+        int ironValue,
+        int copperValue,
+        int goldValue
+    ) {
+        private static final Codec<Stored> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            UUIDUtil.CODEC.fieldOf("id").forGetter(Stored::id),
+            UUIDUtil.CODEC.fieldOf("founder").forGetter(Stored::founder),
+            UUIDUtil.CODEC.listOf().fieldOf("members").forGetter(Stored::members),
+            Codec.STRING.fieldOf("name").forGetter(Stored::name),
+            Codec.STRING.fieldOf("currency_name").forGetter(Stored::currencyName),
+            Symbol.CODEC.fieldOf("crest").forGetter(Stored::crest),
+            Codec.INT.fieldOf("iron_value").forGetter(Stored::ironValue),
+            Codec.INT.fieldOf("copper_value").forGetter(Stored::copperValue),
+            Codec.INT.fieldOf("gold_value").forGetter(Stored::goldValue)
+        ).apply(instance, Stored::new));
+
+        private static Stored of(Kingdom kingdom) {
+            return new Stored(
+                kingdom.id, kingdom.founder, kingdom.memberList(), kingdom.name, kingdom.currencyName,
+                kingdom.crest, kingdom.ironValue, kingdom.copperValue, kingdom.goldValue
+            );
+        }
+
+        private DataResult<Kingdom> toKingdom() {
+            try {
+                return DataResult.success(new Kingdom(
+                    id, founder, members, name, currencyName, crest, ironValue, copperValue, goldValue
+                ));
+            } catch (IllegalArgumentException | NullPointerException e) {
+                return DataResult.error(() -> "Invalid saved kingdom: " + e.getMessage());
+            }
+        }
     }
 
     public enum Metal {

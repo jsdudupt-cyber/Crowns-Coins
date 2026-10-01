@@ -170,5 +170,15 @@
   "crest.crownscoins.ancient_tree": "Ancient tree",
   "crest.crownscoins.sun_and_moon": "Sun and moon",
   "crest.crownscoins.stag": "Stag",
-  "crest.crownscoins.ship": "Ship"
+  "crest.crownscoins.ship": "Ship",
+  "menu.crownscoins.mint_furnace": "Coin Furnace",
+  "message.crownscoins.not_member": "Only members of this kingdom can use this Mint House.",
+  "message.crownscoins.kingdom_creation_rejected": "The kingdom creation request was rejected.",
+  "message.crownscoins.kingdom_created": "Kingdom created. This Mint House is now bound to %s.",
+  "gui.crownscoins.currency_settings": "Currency settings",
+  "gui.crownscoins.settings_title": "CURRENCY SETTINGS",
+  "gui.crownscoins.currency_label": "Currency name",
+  "gui.crownscoins.save_name": "Save name",
+  "gui.crownscoins.currency_note": "This name will appear on the kingdom's coins.",
+  "gui.crownscoins.back_to_press": "Back to the press"
 }

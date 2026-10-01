@@ -12,6 +12,7 @@ import net.minecraft.core.NonNullList;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
+import net.minecraft.world.Containers;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -29,7 +30,7 @@ import net.minecraft.world.level.storage.ValueOutput;
  * <p>The chest deliberately lives on the block entity instead of in a menu-local
  * {@code SimpleContainer}: it is saved with the world, shared by every player
  * opening this exact table, and dropped by Minecraft's normal block-entity
- * removal path when the table is broken.</p>
+ * removal path ({@link #preRemoveSideEffects}) when the table is broken.</p>
  */
 public final class MintHouseBlockEntity extends BlockEntity implements Container {
     /** One simple-chest page, reserved for the three Crowns & Coins denominations. */
@@ -52,6 +53,18 @@ public final class MintHouseBlockEntity extends BlockEntity implements Container
     public Optional<UUID> kingdomId() { return Optional.ofNullable(kingdomId); }
     public void bind(UUID id) { kingdomId = id; setChanged(); }
     public Container furnaceInput() { return furnaceInput; }
+
+    /**
+     * Minecraft already drops this block entity's coin chest because it is a
+     * {@link Container}. The separate furnace input socket needs the same treatment.
+     */
+    @Override
+    public void preRemoveSideEffects(BlockPos pos, BlockState state) {
+        super.preRemoveSideEffects(pos, state);
+        if (this.level != null) {
+            Containers.dropContents(this.level, pos, furnaceInput);
+        }
+    }
 
     /** Returns true for the three physical coin items accepted by the integrated chest. */
     public static boolean acceptsCoin(ItemStack stack) {
@@ -170,7 +183,11 @@ public final class MintHouseBlockEntity extends BlockEntity implements Container
 
     @Override
     public ItemStack removeItemNoUpdate(int slot) {
-        return ContainerHelper.takeItem(this.coinStorage, slot);
+        ItemStack result = ContainerHelper.takeItem(this.coinStorage, slot);
+        if (!result.isEmpty()) {
+            this.setChanged();
+        }
+        return result;
     }
 
     @Override
