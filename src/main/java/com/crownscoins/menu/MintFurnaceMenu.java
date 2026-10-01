@@ -38,7 +38,12 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
     private static final int CHEST_SLOT_START = 1;
     private static final int CHEST_SLOT_END = CHEST_SLOT_START + MintHouseBlockEntity.COIN_STORAGE_SLOTS;
     private static final int PLAYER_SLOT_START = CHEST_SLOT_END;
-    private static final int PLAYER_MAIN_END = PLAYER_SLOT_START + 27;
+    /**
+     * Only the two painted backpack rows and the hotbar are quick-move targets.
+     * The third backpack row is registered after them, off-screen, so shift-click
+     * can never hide items there.
+     */
+    private static final int PLAYER_MAIN_END = PLAYER_SLOT_START + 18;
     private static final int PLAYER_SLOT_END = PLAYER_MAIN_END + 9;
     private final Container furnaceInput;
 
@@ -120,17 +125,20 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
      * but stays off-screen rather than drawing over the artwork.
      */
     private void addFurnaceInventorySlots(Inventory inventory) {
-        for (int row = 0; row < 3; row++) {
+        for (int row = 0; row < 2; row++) {
             for (int column = 0; column < 9; column++) {
                 // The player-authored artwork uses roomy 40px cells.  A
                 // normal Minecraft item remains 16px, centered in each one.
-                int x = row < 2 ? playerSlotX(column) : -1_000;
-                int y = row == 0 ? PLAYER_ROW_ONE_Y : row == 1 ? PLAYER_ROW_TWO_Y : -1_000;
-                this.addSlot(new Slot(inventory, column + row * 9 + 9, x, y));
+                int y = row == 0 ? PLAYER_ROW_ONE_Y : PLAYER_ROW_TWO_Y;
+                this.addSlot(new Slot(inventory, column + row * 9 + 9, playerSlotX(column), y));
             }
         }
         for (int column = 0; column < 9; column++) {
             this.addSlot(new Slot(inventory, column, playerSlotX(column), PLAYER_HOTBAR_Y));
+        }
+        // Hidden third row: still part of the real inventory, never a move target.
+        for (int column = 0; column < 9; column++) {
+            this.addSlot(new Slot(inventory, column + 27, -1_000, -1_000));
         }
     }
 

@@ -1,5 +1,6 @@
 package com.crownscoins.kingdom;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 
 /** Fixed server-authoritative catalog. Clients transmit only these IDs. */
 public enum Symbol {
@@ -13,5 +14,11 @@ public enum Symbol {
     }
 
     public int id() { return ordinal() + 1; }
-    public static final Codec<Symbol> CODEC = Codec.STRING.xmap(Symbol::valueOf, Symbol::name);
+    public static final Codec<Symbol> CODEC = Codec.STRING.comapFlatMap(name -> {
+        try {
+            return DataResult.success(Symbol.valueOf(name));
+        } catch (IllegalArgumentException ignored) {
+            return DataResult.error(() -> "Unknown symbol: " + name);
+        }
+    }, Symbol::name);
 }

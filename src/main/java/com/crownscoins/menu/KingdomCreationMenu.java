@@ -88,7 +88,7 @@ public final class KingdomCreationMenu extends MintHouseBoundMenu implements Net
             payload.crestId()
         );
         if (request.isEmpty()) {
-            player.sendSystemMessage(Component.literal("Kingdom creation request was rejected."));
+            player.sendSystemMessage(Component.translatable("message.crownscoins.kingdom_creation_rejected"));
             return;
         }
 
@@ -112,11 +112,11 @@ public final class KingdomCreationMenu extends MintHouseBoundMenu implements Net
                 details.goldValue()
             );
             mintHouse.get().bind(kingdom.id());
-            player.sendSystemMessage(Component.literal("Kingdom created and this Mint House is now bound to " + kingdom.name() + "."));
+            player.sendSystemMessage(Component.translatable("message.crownscoins.kingdom_created", kingdom.name()));
         } catch (IllegalArgumentException | IllegalStateException ignored) {
             // The SavedData repeats all global invariants, including name and member
             // uniqueness. Do not disclose internal exception data to packet senders.
-            player.sendSystemMessage(Component.literal("Kingdom creation request was rejected."));
+            player.sendSystemMessage(Component.translatable("message.crownscoins.kingdom_creation_rejected"));
         }
     }
 

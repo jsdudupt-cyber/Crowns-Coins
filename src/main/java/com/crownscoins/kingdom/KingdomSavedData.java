@@ -61,7 +61,12 @@ public final class KingdomSavedData extends SavedData {
                 existing = existing.withStandardEconomy();
                 migratedLegacyData = true;
             }
-            indexExisting(existing);
+            try {
+                indexExisting(existing);
+            } catch (IllegalArgumentException conflict) {
+                // One conflicting entry must not make every kingdom in the world unreadable.
+                CrownsCoins.LOGGER.error("Skipping conflicting saved kingdom: {}", conflict.getMessage());
+            }
         }
         if (migratedLegacyData) {
             setDirty();
