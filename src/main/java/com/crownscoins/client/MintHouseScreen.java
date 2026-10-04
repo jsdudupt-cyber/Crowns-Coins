@@ -402,6 +402,8 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
             return;
         }
         this.currencyTabOpen = open;
+        // A message from one view must not linger when switching to the other.
+        this.status = Component.empty();
         this.refreshShapeButtonVisibility();
         if (this.confirmButton != null) {
             this.confirmButton.visible = open;
@@ -511,7 +513,7 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
             this.currencyTabOpen ? this.selectedShape : 0,
             this.selectedQuantity
         ));
-        this.status = gui("mint_sent", quantity);
+        // No "request sent" text: the slot counts, the chest and the chat message already show the result.
     }
 
     /** Prevent the inventory shortcut from interrupting an active name edit. */
@@ -561,13 +563,10 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
                 this.memberNameField.extractRenderState(graphics, mouseX, mouseY, partialTick);
             }
         }
-        if (!this.status.getString().isEmpty()) {
-            // Keep feedback out of the shape gallery, hotbar and name field.
-            if (this.currencyTabOpen) {
-                graphics.centeredText(this.font, this.status, left + 393, top + 252, GOLD);
-            } else {
-                graphics.centeredText(this.font, this.status, left + SCREEN_WIDTH / 2, top + 298, GOLD);
-            }
+        // Feedback is only shown in the settings view, below its fields. The minting view has
+        // no free spot for text, and its slots and chest already show what happened.
+        if (!this.currencyTabOpen && !this.status.getString().isEmpty()) {
+            graphics.centeredText(this.font, this.status, left + SCREEN_WIDTH / 2, top + 298, GOLD);
         }
     }
 
