@@ -679,7 +679,7 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         int available = this.detectedMetal == null ? 0 : Math.max(0, this.menu.mintableCoinCountFor(this.selectedMetal));
         int quantity = mintAmount(available);
         graphics.centeredText(this.font, gui("base_and_amount", available, quantity),
-            left + MintHouseLayout.ACTION_PANEL_X + MintHouseLayout.ACTION_PANEL_WIDTH / 2, top + 213, SUBTLE_TEXT);
+            left + MintHouseLayout.ACTION_PANEL_X + MintHouseLayout.ACTION_PANEL_WIDTH / 2, top + 216, SUBTLE_TEXT);
         for (int index = 0; index < QUANTITY_CHOICES.length; index++) {
             int choice = QUANTITY_CHOICES[index];
             Component label = choice == MintCoinPayload.ALL ? gui("quantity_all") : Component.literal(Integer.toString(choice));
