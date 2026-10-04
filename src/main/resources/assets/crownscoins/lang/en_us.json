@@ -172,6 +172,7 @@
   "crest.crownscoins.stag": "Stag",
   "crest.crownscoins.ship": "Ship",
   "menu.crownscoins.mint_furnace": "Coin Furnace",
+  "message.crownscoins.protected": "This Mint House belongs to the kingdom of %s. Only its members can break it.",
   "gui.crownscoins.quantity_all": "All",
   "gui.crownscoins.quantity_tooltip": "Mint up to %s coin(s) per click",
   "gui.crownscoins.quantity_tooltip_all": "Mint every base coin in the chest",

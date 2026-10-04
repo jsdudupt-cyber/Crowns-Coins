@@ -17,8 +17,11 @@ import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.level.material.PushReaction;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredItem;
@@ -51,7 +54,9 @@ public final class CrownsCoins {
     public static final DeferredBlock<MintHouseBlock> MINT_HOUSE = BLOCKS.registerBlock(
         "mint_house",
         MintHouseBlock::new,
-        () -> BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(3.5F)
+        () -> BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(3.5F, 3_600_000.0F)
+            // Pistons would split the two halves apart and drop the contents.
+            .pushReaction(PushReaction.BLOCK)
             // Only the furnace half is ever lit, and only while it is smelting.
             .lightLevel(state -> state.getValue(MintHouseBlock.LIT) ? 13 : 0)
     );
@@ -120,7 +125,8 @@ public final class CrownsCoins {
         return stack;
     }
 
-    public CrownsCoins(IEventBus eventBus) {
+    public CrownsCoins(IEventBus eventBus, ModContainer modContainer) {
+        modContainer.registerConfig(ModConfig.Type.SERVER, CrownsCoinsConfig.SPEC);
         eventBus.addListener(NetworkHandler::register);
         BLOCKS.register(eventBus);
         ITEMS.register(eventBus);

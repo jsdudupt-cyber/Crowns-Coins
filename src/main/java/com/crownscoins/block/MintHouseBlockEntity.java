@@ -1,6 +1,7 @@
 package com.crownscoins.block;
 
 import com.crownscoins.CrownsCoins;
+import com.crownscoins.CrownsCoinsConfig;
 import com.crownscoins.coin.CoinData;
 import com.crownscoins.kingdom.Kingdom;
 import com.crownscoins.kingdom.KingdomSavedData;
@@ -282,7 +283,7 @@ public final class MintHouseBlockEntity extends BlockEntity implements WorldlyCo
      */
     @Override
     public boolean canTakeItemThroughFace(int slot, ItemStack stack, Direction direction) {
-        if (direction != Direction.DOWN || slot < 0 || slot >= COIN_STORAGE_SLOTS) {
+        if (!CrownsCoinsConfig.ALLOW_HOPPER_OUTPUT.get() || direction != Direction.DOWN || slot < 0 || slot >= COIN_STORAGE_SLOTS) {
             return false;
         }
         CoinData data = stack.get(CrownsCoins.COIN_DATA.get());

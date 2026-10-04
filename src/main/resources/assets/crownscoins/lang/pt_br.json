@@ -172,6 +172,7 @@
   "crest.crownscoins.stag": "Cervo",
   "crest.crownscoins.ship": "Navio",
   "menu.crownscoins.mint_furnace": "Fornalha de Moedas",
+  "message.crownscoins.protected": "Esta Casa da Moeda pertence ao reino de %s. Só os membros dele podem quebrá-la.",
   "gui.crownscoins.quantity_all": "Tudo",
   "gui.crownscoins.quantity_tooltip": "Cunhar até %s moeda(s) por clique",
   "gui.crownscoins.quantity_tooltip_all": "Cunhar todas as moedas-base da arca",
