@@ -3,6 +3,11 @@
 Mod de Minecraft para **NeoForge 26.2** e **Java 25**. Responda em **português simples** e explique
 qualquer erro antes de mexer no código.
 
+## Foco atual: grupo de amigos
+O mod é feito para um **grupo pequeno de amigos** jogando juntos, não para servidor grande ou público.
+Prefira o simples e divertido. Coisas de comunidade grande (proteção contra abuso, publicação, testes
+de carga) ficam para depois e já estão listadas em `ROADMAP.md`, seção "Depois".
+
 ## O que o mod faz
 - Reinos e moedas personalizadas. Estação de dois blocos: **Fornalha de Moedas** (esquerda) e
   **Linha de Cunhagem** (direita).

@@ -9,28 +9,36 @@ Ordem de merge: `feature/kingdom-members` → `cleanup/coin-data` → `fix/heade
 → `art/coin-textures` → `feature/mint-house-protection`. (Cada uma contém as anteriores; a última
 sozinha serve como PR único com tudo.)
 
-## A fazer
+## Foco atual: grupo de amigos
+O mod é para um **grupo pequeno de amigos** que jogam juntos. Tudo o que é de servidor grande ou
+público (proteção contra roubo, publicação, testes automáticos) fica para depois, na seção
+"Depois". As travas já existem como opções no arquivo de configuração, desligadas por padrão.
+
+## A fazer (em ordem)
 1. [ ] **Testar no jogo** (só o usuário consegue): alinhamento dos slots, lista de membros, funis,
        seletor de quantidade, cabeçalho e painel da cunhagem, moedas novas, ícone e texturas da Casa de Câmbio,
-       fornalha acendendo no mundo (chamas e luz) e a barra de progresso da tela da fornalha.
+       fornalha acendendo no mundo (chamas e luz), barra de progresso e os comandos `/crownscoins`.
        Corrigir o que o usuário reportar (ele manda captura de tela).
 2. [ ] **Fazer o merge dos PRs** (usuário). Depois: atualizar o `main` local e apagar as branches
        antigas (**só com autorização**).
-3. [ ] **Apagar arquivos sem uso** em `src/main/resources/assets/crownscoins/`:
+3. [ ] **Sons e partículas**: fornalha crepitando, martelada ao cunhar, fumaça. Dá vida ao mod.
+4. [ ] **Fornalha mostra só 9 dos 27 slots da arca** (a arte tem grade 3×3). Precisa de rolagem e arte
+       nova. **Prévia antes.**
+5. [ ] **Conquistas simples** (primeiro reino, primeira moeda, etc.) para guiar os amigos.
+6. [ ] **Apagar arquivos sem uso** em `src/main/resources/assets/crownscoins/`:
        `textures/item/overlay/`, `textures/item/coin/`, `models/item/overlay/`, `models/item/coin/`
        (~500 KB, nenhum item os referencia). **Precisa de autorização explícita antes de apagar.**
-5. [ ] **Nome do reino nas moedas antigas:** hoje cada moeda guarda uma cópia do nome. Decidir com o
+7. [ ] **Nome do reino nas moedas antigas:** hoje cada moeda guarda uma cópia do nome. Decidir com o
        usuário se renomear o reino deve atualizar as moedas já cunhadas.
-6. [ ] **Fornalha mostra só 9 dos 27 slots da arca** (a arte tem grade 3×3). Precisa de rolagem e arte
-       nova. **Prévia antes.**
-7. [ ] **Testes de jogo automáticos (GameTest)** para funis, quebra de bloco e Shift+clique. É um
-       projeto próprio (estruturas de teste); avaliar o custo antes.
-8. [ ] **Instalar o GitHub CLI** (usuário): `winget install GitHub.cli` e `gh auth login`, para o Claude
-       criar PRs sozinho.
-9. [ ] **Mais uso para as moedas** (decisão do usuário): troca com aldeões ou barril de loja de jogador.
-10. [ ] **Sons, partículas e conquistas** (fornalha crepitando, martelada ao cunhar, fumaça, advancements).
-11. [ ] **Configurar o resto**: custos das pepitas, velocidade da fornalha e tamanho da arca no arquivo de configuração.
-12. [ ] **Publicação**: README com capturas, ícone e logo, licença, build automático no GitHub, versão estável do Minecraft.
+8. [ ] **Mais uso para as moedas** (decisão dos amigos): troca com aldeões ou barril de loja.
+       Já existem `/crownscoins balance` e `/crownscoins pay`.
+
+## Depois (se virar servidor grande ou público)
+- Revisar os padrões da configuração (ligar `protectMintHouse`, desligar `allowHopperOutput`).
+- Configurar o resto: custos das pepitas, velocidade da fornalha e tamanho da arca.
+- Testes de jogo automáticos (GameTest) para funis, quebra de bloco e Shift+clique.
+- Instalar o GitHub CLI (`winget install GitHub.cli` e `gh auth login`) para o Claude criar PRs.
+- Publicação: README com capturas, ícone e logo, licença, build automático no GitHub, versão estável.
 
 ## Feito
 - [x] Correções da revisão: Shift+clique, pepitas ao quebrar, codecs de salvamento, textos traduzíveis.
