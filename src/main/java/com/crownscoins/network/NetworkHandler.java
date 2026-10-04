@@ -7,7 +7,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 /** Common, dedicated-server-safe registration and dispatch for Crowns & Coins payloads. */
 public final class NetworkHandler {
-    public static final String NETWORK_VERSION = "4";
+    public static final String NETWORK_VERSION = "5";
 
     private NetworkHandler() {}
 
@@ -22,6 +22,22 @@ public final class NetworkHandler {
         registrar.playToServer(MintCoinPayload.TYPE, MintCoinPayload.STREAM_CODEC, NetworkHandler::handleMintCoin);
         registrar.playToServer(UpdateCurrencyNamePayload.TYPE, UpdateCurrencyNamePayload.STREAM_CODEC, NetworkHandler::handleUpdateCurrencyName);
         registrar.playToServer(UpdateKingdomNamePayload.TYPE, UpdateKingdomNamePayload.STREAM_CODEC, NetworkHandler::handleUpdateKingdomName);
+        registrar.playToServer(UpdateMembersPayload.TYPE, UpdateMembersPayload.STREAM_CODEC, NetworkHandler::handleUpdateMembers);
+    }
+
+    private static void handleUpdateMembers(UpdateMembersPayload payload, IPayloadContext context) {
+        if (!(context.player() instanceof ServerPlayer player)) {
+            return;
+        }
+        if (!(player.containerMenu instanceof MemberRequestHandler menu)
+                || player.containerMenu.containerId != payload.containerId()) {
+            return;
+        }
+        if (!menu.isMemberRequestValid(player)) {
+            player.closeContainer();
+            return;
+        }
+        menu.handleMemberRequest(player, payload);
     }
 
     private static void handleCreateKingdom(CreateKingdomPayload payload, IPayloadContext context) {
@@ -103,6 +119,13 @@ public final class NetworkHandler {
         boolean isCurrencyNameRequestValid(ServerPlayer player);
 
         void handleCurrencyNameRequest(ServerPlayer player, UpdateCurrencyNamePayload payload);
+    }
+
+    /** Implemented only by the live Mint House menu opened by a kingdom founder. */
+    public interface MemberRequestHandler {
+        boolean isMemberRequestValid(ServerPlayer player);
+
+        void handleMemberRequest(ServerPlayer player, UpdateMembersPayload payload);
     }
 
     /** Implemented only by the live Mint House menu opened by a kingdom founder. */

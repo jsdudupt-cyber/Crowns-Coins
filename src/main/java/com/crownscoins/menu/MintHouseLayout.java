@@ -10,25 +10,6 @@ public final class MintHouseLayout {
     public static final int SCREEN_WIDTH = 480;
     public static final int SCREEN_HEIGHT = 360;
 
-    /** Compact 256px artwork supplied for the physical press on the left. */
-    public static final int PRESS_SCREEN_WIDTH = 256;
-    public static final int PRESS_SCREEN_HEIGHT = 256;
-    public static final int PRESS_MATERIAL_SLOT_X = 30;
-    public static final int PRESS_MATERIAL_SLOT_Y = 60;
-    public static final int PRESS_COIN_STORAGE_X = 191;
-    public static final int PRESS_COIN_STORAGE_Y = 47;
-    public static final int PRESS_PLAYER_INVENTORY_X = 64;
-    public static final int PRESS_PLAYER_INVENTORY_Y = 184;
-    public static final int PRESS_PLAYER_HOTBAR_X = 50;
-    public static final int PRESS_PLAYER_HOTBAR_Y = 229;
-    public static final int PRESS_CONFIRM_X = 68;
-    public static final int PRESS_CONFIRM_Y = 160;
-    public static final int PRESS_CONFIRM_WIDTH = 87;
-    public static final int PRESS_CONFIRM_HEIGHT = 23;
-    public static final int PRESS_BACK_X = 157;
-    public static final int PRESS_BACK_Y = 164;
-    public static final int PRESS_BACK_WIDTH = 36;
-    public static final int PRESS_BACK_HEIGHT = 18;
 
     public static final int HEADER_X = 12;
     public static final int HEADER_Y = 6;
@@ -45,8 +26,6 @@ public final class MintHouseLayout {
     public static final int MATERIAL_PANEL_Y = 56;
     public static final int MATERIAL_PANEL_WIDTH = 92;
     public static final int MATERIAL_PANEL_HEIGHT = 82;
-    public static final int MATERIAL_SLOT_X = -1_000;
-    public static final int MATERIAL_SLOT_Y = -1_000;
 
     public static final int PREVIEW_PANEL_X = 114;
     public static final int PREVIEW_PANEL_Y = 56;
@@ -61,9 +40,9 @@ public final class MintHouseLayout {
     public static final int COIN_CHEST_PANEL_WIDTH = 296;
     public static final int COIN_CHEST_PANEL_HEIGHT = 152;
     /** First 16px item is centered in the first painted 32px arca cell. */
-    public static final int COIN_STORAGE_X = 28;
-    public static final int COIN_STORAGE_Y = 225;
-    public static final int COIN_STORAGE_STEP = 32;
+    public static final int COIN_STORAGE_X = 72;
+    public static final int COIN_STORAGE_Y = 228;
+    public static final int COIN_STORAGE_STEP = 20;
 
     /**
      * The former three metal cards are intentionally replaced by one clean
@@ -79,15 +58,11 @@ public final class MintHouseLayout {
     public static final int SHAPE_GALLERY_BUTTON_COUNT = 12;
 
     /** The large backpack stays hidden, but the quick-access bar is always usable. */
-    public static final int INVENTORY_PANEL_X = -1_000;
-    public static final int INVENTORY_PANEL_Y = -1_000;
-    public static final int INVENTORY_PANEL_WIDTH = 0;
-    public static final int INVENTORY_PANEL_HEIGHT = 0;
-    public static final int PLAYER_INVENTORY_X = -1_000;
-    public static final int PLAYER_INVENTORY_Y = -1_000;
     /** The player-authored layout keeps the quick-access bar below the internal chest. */
-    public static final int PLAYER_HOTBAR_X = 83;
-    public static final int PLAYER_HOTBAR_Y = 317;
+    public static final int PLAYER_HOTBAR_X = 72;
+    public static final int PLAYER_HOTBAR_Y = 300;
+    /** Hotbar slots use the same 20px pitch as the arca grid above them. */
+    public static final int PLAYER_HOTBAR_STEP = 20;
 
     public static final int ACTION_PANEL_X = 320;
     public static final int ACTION_PANEL_Y = 190;

@@ -26,17 +26,19 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
     /** One source of truth for both the real slots and their visual guides. */
     public static final int INPUT_SLOT_X = 47;
     public static final int INPUT_SLOT_Y = 123;
-    public static final int CHEST_SLOT_X = 377;
-    public static final int CHEST_SLOT_Y = 99;
-    public static final int CHEST_SLOT_X_STEP = 28;
-    public static final int CHEST_SLOT_Y_STEP = 23;
-    public static final int PLAYER_SLOT_X = 76;
-    public static final int PLAYER_SLOT_X_STEP = 40;
-    public static final int PLAYER_ROW_ONE_Y = 237;
-    public static final int PLAYER_ROW_TWO_Y = 270;
-    public static final int PLAYER_HOTBAR_Y = 307;
+    public static final int CHEST_SLOT_X = 387;
+    public static final int CHEST_SLOT_Y = 100;
+    public static final int CHEST_SLOT_X_STEP = 20;
+    public static final int CHEST_SLOT_Y_STEP = 20;
+    public static final int PLAYER_SLOT_X = 141;
+    public static final int PLAYER_SLOT_X_STEP = 20;
+    public static final int PLAYER_ROW_ONE_Y = 240;
+    public static final int PLAYER_ROW_TWO_Y = 260;
+    public static final int PLAYER_HOTBAR_Y = 288;
     private static final int CHEST_SLOT_START = 1;
-    private static final int CHEST_SLOT_END = CHEST_SLOT_START + MintHouseBlockEntity.COIN_STORAGE_SLOTS;
+    /** The painted arca shows only the first nine chest slots, and only those are menu slots. */
+    private static final int CHEST_VIEW_SLOTS = 9;
+    private static final int CHEST_SLOT_END = CHEST_SLOT_START + CHEST_VIEW_SLOTS;
     private static final int PLAYER_SLOT_START = CHEST_SLOT_END;
     /**
      * Only the two painted backpack rows and the hotbar are quick-move targets.
@@ -73,9 +75,9 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
             }
         });
         Container coinStorage = coinStorageFor(inventory, mintHousePos);
-        for (int slot = 0; slot < MintHouseBlockEntity.COIN_STORAGE_SLOTS; slot++) {
-            int x = slot < 9 ? chestSlotX(slot) : -1_000;
-            int y = slot < 9 ? chestSlotY(slot) : -1_000;
+        for (int slot = 0; slot < CHEST_VIEW_SLOTS; slot++) {
+            int x = chestSlotX(slot);
+            int y = chestSlotY(slot);
             this.addSlot(new ReadOnlyCoinSlot(coinStorage, slot, x, y));
         }
         addFurnaceInventorySlots(inventory);
@@ -135,10 +137,6 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
         }
         for (int column = 0; column < 9; column++) {
             this.addSlot(new Slot(inventory, column, playerSlotX(column), PLAYER_HOTBAR_Y));
-        }
-        // Hidden third row: still part of the real inventory, never a move target.
-        for (int column = 0; column < 9; column++) {
-            this.addSlot(new Slot(inventory, column + 27, -1_000, -1_000));
         }
     }
 

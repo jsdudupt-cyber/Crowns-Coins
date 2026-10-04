@@ -11,8 +11,13 @@ import com.crownscoins.network.MintCoinPayload;
 import com.crownscoins.network.NetworkHandler;
 import com.crownscoins.network.UpdateCurrencyNamePayload;
 import com.crownscoins.network.UpdateKingdomNamePayload;
+import com.crownscoins.network.UpdateMembersPayload;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.players.NameAndId;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
@@ -22,14 +27,11 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 
 /**
@@ -40,7 +42,8 @@ import net.minecraft.world.level.Level;
 public final class MintHouseMenu extends MintHouseBoundMenu implements
     NetworkHandler.MintCoinRequestHandler,
     NetworkHandler.CurrencyNameRequestHandler,
-    NetworkHandler.KingdomNameRequestHandler {
+    NetworkHandler.KingdomNameRequestHandler,
+    NetworkHandler.MemberRequestHandler {
     public static final int IRON_METAL_ID = 1;
     public static final int COPPER_METAL_ID = 2;
     public static final int GOLD_METAL_ID = 3;
@@ -48,28 +51,24 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
     public static final int COPPER_NUGGETS_PER_COIN = 2;
     public static final int IRON_NUGGETS_PER_COIN = 5;
     public static final int GOLD_NUGGETS_PER_COIN = 7;
-    private static final int MATERIAL_SLOT = 0;
-    private static final int COIN_STORAGE_SLOT_START = MATERIAL_SLOT + 1;
+    /** Upper bound for the member list shown in the settings view. */
+    public static final int MAX_LISTED_MEMBERS = 24;
+    /**
+     * Slot layout: the 27-slot coin chest, then the nine hotbar slots. The
+     * backpack is deliberately not part of this menu, so no slot is ever
+     * parked off-screen.
+     */
+    private static final int COIN_STORAGE_SLOT_START = 0;
     private static final int COIN_STORAGE_SLOT_END = COIN_STORAGE_SLOT_START + MintHouseBlockEntity.COIN_STORAGE_SLOTS;
-    private static final int PLAYER_SLOT_START = COIN_STORAGE_SLOT_END;
-    private static final int PLAYER_MAIN_END = PLAYER_SLOT_START + 27;
-    private static final int PLAYER_SLOT_END = PLAYER_MAIN_END + 9;
+    private static final int HOTBAR_SLOT_START = COIN_STORAGE_SLOT_END;
+    private static final int HOTBAR_SLOT_END = HOTBAR_SLOT_START + 9;
     private final ClientMintData clientData;
-    /** One temporary input slot, returned to its owner like a vanilla crafting grid. */
-    private final Container materialSlot;
     /** Persistent 27-slot coin chest held by the exact Mint House block entity. */
     private final Container coinStorage;
-    /** True only when opened from the right-hand matrix and engraving table. */
-    private final boolean designMode;
 
-    /** Server constructor. The player inventory remains fully usable while minting. */
+    /** Server constructor. The player's hotbar remains usable while minting. */
     public MintHouseMenu(int containerId, Inventory inventory, ServerLevel level, BlockPos mintHousePos) {
-        this(containerId, inventory, level, mintHousePos, false);
-    }
-
-    /** The selected physical half determines the initial menu layout. */
-    public MintHouseMenu(int containerId, Inventory inventory, ServerLevel level, BlockPos mintHousePos, boolean openDesignAtStart) {
-        this(CrownsCoins.MINT_HOUSE_MENU.get(), containerId, inventory, level.dimension(), mintHousePos, ClientMintData.empty(openDesignAtStart));
+        this(CrownsCoins.MINT_HOUSE_MENU.get(), containerId, inventory, level.dimension(), mintHousePos, ClientMintData.empty());
     }
 
     /** Client factory; authoritative state remains in the corresponding server menu. */
@@ -88,7 +87,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
                 data.readVarInt(),
                 data.readVarInt(),
                 data.readVarInt(),
-                data.readBoolean()
+                readMemberNames(data)
             )
         );
     }
@@ -103,42 +102,23 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
     ) {
         super(menuType, containerId, dimension, mintHousePos);
         this.clientData = clientData;
-        this.designMode = clientData.openDesignAtStart();
-        this.materialSlot = new SimpleContainer(1);
         this.coinStorage = coinStorageFor(inventory, mintHousePos);
-        int materialX = designMode ? MintHouseLayout.MATERIAL_SLOT_X : MintHouseLayout.PRESS_MATERIAL_SLOT_X;
-        int materialY = designMode ? MintHouseLayout.MATERIAL_SLOT_Y : MintHouseLayout.PRESS_MATERIAL_SLOT_Y;
-        this.addSlot(new Slot(
-            this.materialSlot,
-            MATERIAL_SLOT,
-            materialX,
-            materialY
-        ) {
-            @Override
-            public boolean mayPlace(ItemStack stack) {
-                return MintHouseMenu.this.acceptsInput(stack);
-            }
-        });
         for (int slot = 0; slot < MintHouseBlockEntity.COIN_STORAGE_SLOTS; slot++) {
-            int column = designMode ? slot % 9 : slot % 3;
-            int row = designMode ? slot / 9 : slot / 3;
             this.addSlot(new CoinStorageSlot(
                 this.coinStorage,
                 slot,
-                designMode ? MintHouseLayout.coinStorageSlotX(slot) : MintHouseLayout.PRESS_COIN_STORAGE_X + column * 18,
-                designMode ? MintHouseLayout.coinStorageSlotY(slot) : MintHouseLayout.PRESS_COIN_STORAGE_Y + row * 18
+                MintHouseLayout.coinStorageSlotX(slot),
+                MintHouseLayout.coinStorageSlotY(slot)
             ));
         }
-        this.addInventoryExtendedSlots(
-            inventory,
-            designMode ? MintHouseLayout.PLAYER_INVENTORY_X : MintHouseLayout.PRESS_PLAYER_INVENTORY_X,
-            designMode ? MintHouseLayout.PLAYER_INVENTORY_Y : MintHouseLayout.PRESS_PLAYER_INVENTORY_Y
-        );
-        this.addInventoryHotbarSlots(
-            inventory,
-            designMode ? MintHouseLayout.PLAYER_HOTBAR_X : MintHouseLayout.PRESS_PLAYER_HOTBAR_X,
-            designMode ? MintHouseLayout.PLAYER_HOTBAR_Y : MintHouseLayout.PRESS_PLAYER_HOTBAR_Y
-        );
+        for (int column = 0; column < 9; column++) {
+            this.addSlot(new Slot(
+                inventory,
+                column,
+                MintHouseLayout.PLAYER_HOTBAR_X + column * MintHouseLayout.PLAYER_HOTBAR_STEP,
+                MintHouseLayout.PLAYER_HOTBAR_Y
+            ));
+        }
     }
 
     /** Server-authored display data only; never used to authorize minting. */
@@ -146,74 +126,26 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         return clientData;
     }
 
-    /** Returns whether the visible input slot contains enough matching nuggets. */
+    /** Returns whether the chest holds at least one base coin of this metal. */
     public boolean hasMaterialFor(Kingdom.Metal metal) {
         return mintableCoinCountFor(metal) > 0;
     }
 
     /**
-     * Returns the complete matching stack in the mint socket. The client uses
-     * this only to describe the action; the server recalculates it immediately
-     * before minting so a packet can never choose its own output quantity.
-     */
-    public int materialCountFor(Kingdom.Metal metal) {
-        if (designMode) {
-            return baseCoinCountForMetal(metal);
-        }
-        ItemStack stack = this.materialSlot.getItem(MATERIAL_SLOT);
-        return stack.is(nuggetFor(metal)) ? stack.getCount() : 0;
-    }
-
-    /**
-     * Lets a player replace one denomination with another in a single normal
-     * left-click. Vanilla slots only merge matching stacks, which made a copper
-     * nugget look rejected whenever iron or gold nuggets were already in the
-     * mint socket. The previous stack is put on the cursor and is never lost.
-     */
-    @Override
-    public void clicked(int slotIndex, int button, ContainerInput clickType, Player player) {
-        if (slotIndex == MATERIAL_SLOT && clickType == ContainerInput.PICKUP && button == 0) {
-            ItemStack carried = this.getCarried();
-            ItemStack installed = this.materialSlot.getItem(MATERIAL_SLOT);
-            if (!carried.isEmpty()
-                && !installed.isEmpty()
-                && acceptsInput(carried)
-                && acceptsInput(installed)
-                && carried.getItem() != installed.getItem()) {
-                this.materialSlot.setItem(MATERIAL_SLOT, carried.copy());
-                this.setCarried(installed.copy());
-                this.broadcastChanges();
-                return;
-            }
-        }
-        super.clicked(slotIndex, button, clickType, player);
-    }
-
-    /**
-     * Identifies the denomination that the live input slot can mint. The
-     * screen uses this synchronized slot state to select the metal for the
-     * player; the server still independently validates the eventual request.
+     * Identifies the denomination of the first base coin in the chest. The
+     * screen uses this synchronized state to pick the metal for the player;
+     * the server still independently validates the eventual request.
      */
     public Optional<Kingdom.Metal> materialMetal() {
-        if (designMode) {
-            return firstBaseMetalInStorage();
-        }
-        return metalForMintingMaterial(this.materialSlot.getItem(MATERIAL_SLOT));
+        return firstBaseMetalInStorage();
     }
 
-    /** Number of coins the live nugget input can produce for the selected denomination. */
+    /** Number of base coins of this metal in the chest, i.e. how many coins one mint can produce. */
     public int mintableCoinCountFor(Kingdom.Metal metal) {
-        if (designMode) {
-            return baseCoinCountForMetal(metal);
-        }
-        ItemStack stack = this.materialSlot.getItem(MATERIAL_SLOT);
-        if (metalForBaseCoin(stack).filter(metal::equals).isPresent()) {
-            return stack.getCount();
-        }
-        return materialCountFor(metal) / nuggetsPerCoin(metal);
+        return baseCoinCountForMetal(metal);
     }
 
-    /** Moves shift-clicked stacks among the ingredient socket, coin chest, and player inventory. */
+    /** Shift-click moves coins between the coin chest and the visible hotbar. */
     @Override
     public ItemStack quickMoveStack(Player player, int slotIndex) {
         if (slotIndex < 0 || slotIndex >= this.slots.size()) {
@@ -228,24 +160,12 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         ItemStack stack = slot.getItem();
         ItemStack result = stack.copy();
         boolean moved;
-        // The design table hides the backpack, so only the visible hotbar may receive items.
-        int playerTargetStart = designMode ? PLAYER_MAIN_END : PLAYER_SLOT_START;
-        if (slotIndex == MATERIAL_SLOT) {
-            moved = this.moveItemStackTo(stack, playerTargetStart, PLAYER_SLOT_END, true);
-        } else if (slotIndex >= COIN_STORAGE_SLOT_START && slotIndex < COIN_STORAGE_SLOT_END) {
-            moved = this.moveItemStackTo(stack, playerTargetStart, PLAYER_SLOT_END, true);
-        } else if (acceptsInput(stack)) {
-            moved = this.moveItemStackTo(stack, MATERIAL_SLOT, MATERIAL_SLOT + 1, false);
-            if (!moved) {
-                moved = moveBetweenPlayerRows(stack, slotIndex);
-            }
+        if (slotIndex >= COIN_STORAGE_SLOT_START && slotIndex < COIN_STORAGE_SLOT_END) {
+            moved = this.moveItemStackTo(stack, HOTBAR_SLOT_START, HOTBAR_SLOT_END, true);
         } else if (MintHouseBlockEntity.acceptsCoin(stack)) {
             moved = this.moveItemStackTo(stack, COIN_STORAGE_SLOT_START, COIN_STORAGE_SLOT_END, false);
-            if (!moved) {
-                moved = moveBetweenPlayerRows(stack, slotIndex);
-            }
         } else {
-            moved = moveBetweenPlayerRows(stack, slotIndex);
+            moved = false;
         }
 
         if (!moved) {
@@ -263,14 +183,102 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         return result;
     }
 
-    /** Ensures the exact live Mint House is still bound to a real server kingdom. */
+    /** Ensures the exact live Mint House is still bound to a kingdom the player belongs to. */
     @Override
     public boolean isMintCoinRequestValid(ServerPlayer player) {
         return currentMintHouse(player)
             .flatMap(mintHouse -> mintHouse.kingdomId())
             .flatMap(kingdomId -> KingdomSavedData.get((ServerLevel) player.level()).find(kingdomId))
-            .filter(kingdom -> KingdomCrest.isSupported(kingdom.crest()))
+            .filter(kingdom -> KingdomCrest.isSupported(kingdom.crest()) && kingdom.isMember(player.getUUID()))
             .isPresent();
+    }
+
+    /** Only the founder of the bound kingdom may add or remove members. */
+    @Override
+    public boolean isMemberRequestValid(ServerPlayer player) {
+        return isCurrencyNameRequestValid(player);
+    }
+
+    /** Adds or removes one named player; the kingdom always comes from this live menu. */
+    @Override
+    public void handleMemberRequest(ServerPlayer player, UpdateMembersPayload payload) {
+        if (payload.containerId() != this.containerId || !isMemberRequestValid(player)) {
+            player.closeContainer();
+            return;
+        }
+
+        String name = payload.playerName().strip();
+        Optional<UUID> kingdomId = currentMintHouse(player).flatMap(MintHouseBlockEntity::kingdomId);
+        Optional<NameAndId> target = name.isEmpty() ? Optional.empty() : resolvePlayer((ServerLevel) player.level(), name);
+        if (kingdomId.isEmpty() || target.isEmpty()) {
+            player.sendSystemMessage(Component.translatable("message.crownscoins.member_not_found", name));
+            return;
+        }
+
+        KingdomSavedData kingdoms = KingdomSavedData.get((ServerLevel) player.level());
+        boolean changed = payload.add()
+            ? kingdoms.addMember(kingdomId.get(), target.get().id())
+            : kingdoms.removeMember(kingdomId.get(), target.get().id());
+        if (!changed) {
+            player.sendSystemMessage(Component.translatable("message.crownscoins.member_rejected", target.get().name()));
+            return;
+        }
+        player.sendSystemMessage(Component.translatable(
+            payload.add() ? "message.crownscoins.member_added" : "message.crownscoins.member_removed",
+            target.get().name()
+        ));
+    }
+
+    private static Optional<NameAndId> resolvePlayer(ServerLevel level, String name) {
+        MinecraftServer server = level.getServer();
+        ServerPlayer online = server.getPlayerList().getPlayerByName(name);
+        if (online != null) {
+            return Optional.of(new NameAndId(online.getGameProfile()));
+        }
+        return server.services().nameToIdCache().get(name);
+    }
+
+    /**
+     * Display names of a kingdom's members, founder first. Online players use
+     * their live name; offline ones fall back to the server's name cache.
+     */
+    public static List<String> memberNames(ServerLevel level, Kingdom kingdom) {
+        MinecraftServer server = level.getServer();
+        List<UUID> others = new ArrayList<>(kingdom.members());
+        others.remove(kingdom.founder());
+        List<UUID> ordered = new ArrayList<>();
+        ordered.add(kingdom.founder());
+        ordered.addAll(others);
+
+        List<String> names = new ArrayList<>();
+        for (UUID id : ordered) {
+            ServerPlayer online = server.getPlayerList().getPlayer(id);
+            String name = online != null
+                ? online.getGameProfile().name()
+                : server.services().nameToIdCache().get(id).map(NameAndId::name).orElse(id.toString().substring(0, 8));
+            names.add(name);
+            if (names.size() >= MAX_LISTED_MEMBERS) {
+                break;
+            }
+        }
+        return names;
+    }
+
+    /** Writes the member list in the same format that {@link #readMemberNames} expects. */
+    public static void writeMemberNames(RegistryFriendlyByteBuf buffer, List<String> names) {
+        buffer.writeVarInt(names.size());
+        for (String name : names) {
+            buffer.writeUtf(name, UpdateMembersPayload.MAX_PLAYER_NAME_LENGTH);
+        }
+    }
+
+    private static List<String> readMemberNames(RegistryFriendlyByteBuf buffer) {
+        int count = Math.min(buffer.readVarInt(), MAX_LISTED_MEMBERS);
+        List<String> names = new ArrayList<>(count);
+        for (int index = 0; index < count; index++) {
+            names.add(buffer.readUtf(UpdateMembersPayload.MAX_PLAYER_NAME_LENGTH));
+        }
+        return names;
     }
 
     /** Only the founder of the currently bound kingdom may rename its currency. */
@@ -346,10 +354,9 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         }
 
         MintRequest validated = request.get();
-        boolean makingBaseCoin = validated.shapeId() == CoinData.DEFAULT_SHAPE_ID;
-        int quantity = makingBaseCoin
-            ? materialCountFor(validated.metal()) / nuggetsPerCoin(validated.metal())
-            : baseCoinCountFor(validated);
+        // Minting stamps a design onto every matching base coin in the chest;
+        // the furnace is what turns nuggets into base coins.
+        int quantity = baseCoinCountFor(validated);
         if (quantity <= 0) {
             player.sendSystemMessage(Component.translatable("message.crownscoins.missing_nuggets"));
             return;
@@ -363,13 +370,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             return;
         }
 
-        if (makingBaseCoin) {
-            int requiredNuggets = quantity * nuggetsPerCoin(validated.metal());
-            if (!consumeInputNuggets(validated.metal(), requiredNuggets)) {
-                player.sendSystemMessage(Component.translatable("message.crownscoins.missing_nuggets"));
-                return;
-            }
-        } else if (!consumeBaseCoins(validated, quantity)) {
+        if (!consumeBaseCoins(validated, quantity)) {
             player.sendSystemMessage(Component.translatable("message.crownscoins.mint_rejected"));
             return;
         }
@@ -397,13 +398,6 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
      * Packet-handler entry point. It proves the exact Mint House menu is still open
      * before processing the client-selected metal and shape IDs.
      */
-    public static Optional<MintRequest> validateCurrentPayload(
-        ServerPlayer player,
-        int metalId
-    ) {
-        return validateCurrentPayload(player, metalId, CoinData.DEFAULT_SHAPE_ID);
-    }
-
     /** Validates a client-selected metal and supported catalog shape for the live menu. */
     public static Optional<MintRequest> validateCurrentPayload(
         ServerPlayer player,
@@ -417,21 +411,12 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
     }
 
     /**
-     * Validates a decoded mint request without consuming nuggets or creating an
-     * item. The caller must separately check and consume the corresponding nuggets
-     * after this method succeeds.
-     */
-    public Optional<MintRequest> validatePayload(ServerPlayer player, int metalId) {
-        return validatePayload(player, metalId, CoinData.DEFAULT_SHAPE_ID);
-    }
-
-    /**
      * Validates the exact format selection received from the client without
-     * consuming input. Shape zero remains valid for old clients and legacy
-     * coin stacks; one through ten are the new selectable catalog values.
+     * consuming input. Shape zero is reserved for plain base coins, so only
+     * the selectable catalog shapes (one through twelve) can be minted here.
      */
     public Optional<MintRequest> validatePayload(ServerPlayer player, int metalId, int shapeId) {
-        if (!CoinData.isValidShapeId(shapeId) || (designMode && shapeId == CoinData.DEFAULT_SHAPE_ID)) {
+        if (!CoinData.isValidShapeId(shapeId) || shapeId == CoinData.DEFAULT_SHAPE_ID) {
             return Optional.empty();
         }
         Optional<MintHouseBlockEntity> mintHouse = currentMintHouse(player);
@@ -493,26 +478,6 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         return createCoin(new MintRequest(kingdom, metal, CoinData.DEFAULT_SHAPE_ID), 1);
     }
 
-    @Override
-    public void removed(Player player) {
-        super.removed(player);
-        this.clearContainer(player, this.materialSlot);
-    }
-
-    private boolean consumeInputNuggets(Kingdom.Metal metal, int quantity) {
-        ItemStack stack = this.materialSlot.getItem(MATERIAL_SLOT);
-        if (quantity < 1 || !stack.is(nuggetFor(metal)) || stack.getCount() < quantity) {
-            return false;
-        }
-        stack.shrink(quantity);
-        if (stack.isEmpty()) {
-            this.materialSlot.setItem(MATERIAL_SLOT, ItemStack.EMPTY);
-        } else {
-            this.materialSlot.setChanged();
-        }
-        return true;
-    }
-
     /** The left-hand mint only accepts clean, round bases created for this table's kingdom. */
     private int baseCoinCountFor(MintRequest request) {
         int amount = 0;
@@ -550,17 +515,6 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             && data.material() == coinMaterial(request.metal());
     }
 
-    private boolean moveBetweenPlayerRows(ItemStack stack, int slotIndex) {
-        if (designMode) {
-            // The backpack is hidden here; never move items into slots the player cannot see.
-            return false;
-        }
-        if (slotIndex < PLAYER_MAIN_END) {
-            return this.moveItemStackTo(stack, PLAYER_MAIN_END, PLAYER_SLOT_END, false);
-        }
-        return this.moveItemStackTo(stack, PLAYER_SLOT_START, PLAYER_MAIN_END, false);
-    }
-
     /**
      * The server always resolves the live block entity. The client may receive
      * the menu before its local block entity reaches the render world, so it
@@ -583,31 +537,6 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         public boolean mayPlace(ItemStack stack) {
             return MintHouseBlockEntity.acceptsCoin(stack);
         }
-    }
-
-    private static boolean isMintingMaterial(ItemStack stack) {
-        return metalForMintingMaterial(stack).isPresent();
-    }
-
-    /**
-     * The design table has no visible input socket: its base coins live in the
-     * internal chest. Only the (unused) compact press accepts a loose input.
-     */
-    private boolean acceptsInput(ItemStack stack) {
-        return !designMode && isMintingMaterial(stack);
-    }
-
-    private static Optional<Kingdom.Metal> metalForMintingMaterial(ItemStack stack) {
-        if (stack.is(Items.COPPER_NUGGET)) {
-            return Optional.of(Kingdom.Metal.COPPER);
-        }
-        if (stack.is(Items.IRON_NUGGET)) {
-            return Optional.of(Kingdom.Metal.IRON);
-        }
-        if (stack.is(Items.GOLD_NUGGET)) {
-            return Optional.of(Kingdom.Metal.GOLD);
-        }
-        return metalForBaseCoin(stack);
     }
 
     private static Optional<Kingdom.Metal> metalForBaseCoin(ItemStack stack) {
@@ -651,14 +580,6 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         };
     }
 
-    private static Item nuggetFor(Kingdom.Metal metal) {
-        return switch (metal) {
-            case IRON -> Items.IRON_NUGGET;
-            case COPPER -> Items.COPPER_NUGGET;
-            case GOLD -> Items.GOLD_NUGGET;
-        };
-    }
-
     /** Shared client/server display and validation rule for the three minting costs. */
     public static int nuggetsPerCoin(Kingdom.Metal metal) {
         return switch (metal) {
@@ -690,9 +611,10 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         int ironValue,
         int copperValue,
         int goldValue,
-        boolean openDesignAtStart
+
+        List<String> memberNames
     ) {
-        private static ClientMintData empty(boolean openDesignAtStart) {
+        private static ClientMintData empty() {
             return new ClientMintData(
                 "",
                 "",
@@ -701,7 +623,8 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
                 Kingdom.IRON_COIN_VALUE,
                 Kingdom.COPPER_COIN_VALUE,
                 Kingdom.GOLD_COIN_VALUE,
-                openDesignAtStart
+
+                List.of()
             );
         }
     }

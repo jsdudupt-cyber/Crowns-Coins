@@ -176,13 +176,7 @@ public final class MintHouseBlock extends BaseEntityBlock {
         }
         serverPlayer.openMenu(
             new SimpleMenuProvider(
-                (id, inventory, ignored) -> new MintHouseMenu(
-                    id,
-                    inventory,
-                    serverLevel,
-                    mintPos,
-                    true
-                ),
+                (id, inventory, ignored) -> new MintHouseMenu(id, inventory, serverLevel, mintPos),
                 Component.translatable("menu.crownscoins.mint")
             ),
             buffer -> {
@@ -194,7 +188,7 @@ public final class MintHouseBlock extends BaseEntityBlock {
                 buffer.writeVarInt(boundKingdom.ironValue());
                 buffer.writeVarInt(boundKingdom.copperValue());
                 buffer.writeVarInt(boundKingdom.goldValue());
-                buffer.writeBoolean(true);
+                MintHouseMenu.writeMemberNames(buffer, MintHouseMenu.memberNames(serverLevel, boundKingdom));
             }
         );
         return InteractionResult.SUCCESS_SERVER;
