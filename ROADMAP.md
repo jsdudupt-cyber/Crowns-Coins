@@ -25,7 +25,7 @@ público (proteção contra roubo, publicação, testes automáticos) fica para 
        e chamas, "ding" a cada moeda-base, martelada com faíscas ao cunhar (sem som de ignição).
 4. [x] **Arca na fornalha com rolagem** (feito, falta o usuário testar): 3 páginas de 9 slots, setas ao lado da grade,
        indicador "1/3" e roda do mouse. Só visualização; as moedas se mexem na Linha de Cunhagem.
-5. [ ] **Conquistas simples** (primeiro reino, primeira moeda, etc.) para guiar os amigos.
+5. [x] **Conquistas simples** (feito, falta o usuário ver): Casa da Moeda, Nasce um Reino, Primeira Cunhagem, Amigos na Corte, O Dinheiro Circula e Troca Justa.
 6. [ ] **Apagar arquivos sem uso** em `src/main/resources/assets/crownscoins/`:
        `textures/item/overlay/`, `textures/item/coin/`, `models/item/overlay/`, `models/item/coin/`
        (~500 KB, nenhum item os referencia). **Precisa de autorização explícita antes de apagar.**

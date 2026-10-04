@@ -2,6 +2,7 @@ package com.crownscoins.menu;
 
 import com.crownscoins.block.MintHouseBlockEntity;
 import com.crownscoins.CrownsCoins;
+import com.crownscoins.ModAdvancements;
 import com.crownscoins.coin.CoinData;
 import com.crownscoins.kingdom.Kingdom;
 import com.crownscoins.kingdom.PlayerLookup;
@@ -230,6 +231,9 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             payload.add() ? "message.crownscoins.member_added" : "message.crownscoins.member_removed",
             target.get().name()
         ));
+        if (payload.add()) {
+            ModAdvancements.award(player, ModAdvancements.MEMBERS);
+        }
         pushKingdomInfo(player);
     }
 
@@ -418,6 +422,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             validated.kingdom().currencyName()
         ));
         playMintEffects((ServerLevel) player.level());
+        ModAdvancements.award(player, ModAdvancements.FIRST_MINT);
     }
 
     /** A hammer blow on an anvil and a burst of sparks over the press, for everyone nearby. */

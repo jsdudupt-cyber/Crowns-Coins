@@ -2,6 +2,7 @@ package com.crownscoins.menu;
 
 import com.crownscoins.block.MintHouseBlockEntity;
 import com.crownscoins.CrownsCoins;
+import com.crownscoins.ModAdvancements;
 import com.crownscoins.kingdom.Kingdom;
 import com.crownscoins.kingdom.KingdomCrest;
 import com.crownscoins.kingdom.KingdomSavedData;
@@ -106,6 +107,7 @@ public final class KingdomCreationMenu extends MintHouseBoundMenu implements Net
                 details.crest()
             );
             mintHouse.get().bind(kingdom.id());
+            ModAdvancements.award(player, ModAdvancements.KINGDOM);
             player.sendSystemMessage(Component.translatable("message.crownscoins.kingdom_created", kingdom.name()));
         } catch (IllegalArgumentException | IllegalStateException ignored) {
             // The SavedData repeats all global invariants, including name and member

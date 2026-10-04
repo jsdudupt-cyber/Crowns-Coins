@@ -1,6 +1,7 @@
 package com.crownscoins.command;
 
 import com.crownscoins.CrownsCoins;
+import com.crownscoins.ModAdvancements;
 import com.crownscoins.coin.CoinWallet;
 import com.crownscoins.kingdom.Kingdom;
 import com.crownscoins.kingdom.KingdomSavedData;
@@ -97,6 +98,7 @@ public final class WalletCommands {
             }
         }
         source.sendSuccess(() -> Component.translatable("command.crownscoins.paid", amount, holding.currencyName(), receiver.getDisplayName()), false);
+        ModAdvancements.award(payer, ModAdvancements.PAY);
         receiver.sendSystemMessage(Component.translatable("command.crownscoins.received", payer.getDisplayName(), amount, holding.currencyName()));
         return 1;
     }

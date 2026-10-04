@@ -1,0 +1,12 @@
+{
+  "parent": "crownscoins:kingdom",
+  "criteria": { "triggered": { "trigger": "minecraft:impossible" } },
+  "display": {
+    "icon": { "id": "minecraft:player_head" },
+    "title": { "translate": "advancements.crownscoins.members.title" },
+    "description": { "translate": "advancements.crownscoins.members.description" },
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "requirements": [ [ "triggered" ] ]
+}

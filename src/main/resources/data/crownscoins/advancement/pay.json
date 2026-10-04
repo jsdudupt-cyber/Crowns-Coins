@@ -1,0 +1,12 @@
+{
+  "parent": "crownscoins:first_mint",
+  "criteria": { "triggered": { "trigger": "minecraft:impossible" } },
+  "display": {
+    "icon": { "id": "crownscoins:iron_coin" },
+    "title": { "translate": "advancements.crownscoins.pay.title" },
+    "description": { "translate": "advancements.crownscoins.pay.description" },
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "requirements": [ [ "triggered" ] ]
+}
