@@ -186,6 +186,44 @@ public final class KingdomSavedData extends SavedData {
     }
 
     /**
+     * Permanently removes a kingdom and frees every member to join or found another.
+     * Mint Houses that were bound to it stay in the world and are unbound the next
+     * time someone uses them; coins already minted keep their stored data.
+     */
+    public boolean deleteKingdom(UUID kingdomId) {
+        Kingdom removed = kingdomsById.remove(Objects.requireNonNull(kingdomId, "kingdomId"));
+        if (removed == null) {
+            return false;
+        }
+        kingdomByCanonicalName.remove(Kingdom.canonicalName(removed.name()), kingdomId);
+        for (UUID member : removed.members()) {
+            kingdomByMember.remove(member, kingdomId);
+        }
+        setDirty();
+        return true;
+    }
+
+    /**
+     * Makes an existing member the founder, who alone may rename the kingdom and manage
+     * members. The previous founder stays a regular member. Returns empty when the target
+     * is not a member of that kingdom.
+     */
+    public Optional<Kingdom> transferFounder(UUID kingdomId, UUID newFounderId) {
+        Kingdom current = kingdomsById.get(Objects.requireNonNull(kingdomId, "kingdomId"));
+        Objects.requireNonNull(newFounderId, "newFounderId");
+        if (current == null || !current.isMember(newFounderId)) {
+            return Optional.empty();
+        }
+        if (current.isFounder(newFounderId)) {
+            return Optional.of(current);
+        }
+        Kingdom replacement = current.withFounder(newFounderId);
+        kingdomsById.put(kingdomId, replacement);
+        setDirty();
+        return Optional.of(replacement);
+    }
+
+    /**
      * Adds a player to a kingdom only when they do not already belong to another one.
      * It is ready for future member-management UI without weakening the one-kingdom
      * rule. Returns {@code true} only when a membership was actually added.

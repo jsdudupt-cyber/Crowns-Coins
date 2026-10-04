@@ -163,6 +163,11 @@ public final class Kingdom {
     Kingdom withName(String replacementName) {
         return new Kingdom(this.id, this.founder, this.members, replacementName, this.currencyName, this.crest);
     }
+    /* Package-private: hands the kingdom to another member; the old founder stays a regular member. */
+    Kingdom withFounder(UUID newFounder) {
+        return new Kingdom(this.id, newFounder, this.members, this.name, this.currencyName, this.crest);
+    }
+
 
     /* Package-private: SavedData owns mutations so it can mark itself dirty. */
     boolean addMember(UUID playerId) {

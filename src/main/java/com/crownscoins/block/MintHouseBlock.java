@@ -150,6 +150,10 @@ public final class MintHouseBlock extends BaseEntityBlock {
 
         // The right-hand press owns the kingdom association, currency name and designs.
         var kingdoms = KingdomSavedData.get(serverLevel);
+        // A kingdom an administrator deleted leaves its Mint Houses pointing at nothing: free them.
+        if (mintHouse.kingdomId().isPresent() && kingdoms.find(mintHouse.kingdomId().get()).isEmpty()) {
+            mintHouse.bind(null);
+        }
         Kingdom boundKingdom;
         if (mintHouse.kingdomId().isEmpty()) {
             var owned = kingdoms.findByMember(serverPlayer.getUUID());

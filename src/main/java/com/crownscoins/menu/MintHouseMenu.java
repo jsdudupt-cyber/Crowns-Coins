@@ -4,6 +4,7 @@ import com.crownscoins.block.MintHouseBlockEntity;
 import com.crownscoins.CrownsCoins;
 import com.crownscoins.coin.CoinData;
 import com.crownscoins.kingdom.Kingdom;
+import com.crownscoins.kingdom.PlayerLookup;
 import com.crownscoins.kingdom.KingdomCrest;
 import com.crownscoins.kingdom.KingdomSavedData;
 import com.crownscoins.kingdom.Symbol;
@@ -249,12 +250,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
     }
 
     private static Optional<NameAndId> resolvePlayer(ServerLevel level, String name) {
-        MinecraftServer server = level.getServer();
-        ServerPlayer online = server.getPlayerList().getPlayerByName(name);
-        if (online != null) {
-            return Optional.of(new NameAndId(online.getGameProfile()));
-        }
-        return server.services().nameToIdCache().get(name);
+        return PlayerLookup.byName(level.getServer(), name);
     }
 
     /**

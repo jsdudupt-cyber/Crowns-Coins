@@ -75,4 +75,36 @@ class KingdomSavedDataTest {
         assertTrue(data.findByName("Aldenbruk").isEmpty());
         assertTrue(data.findByName("nova aldenbruk").isPresent());
     }
+
+    @Test
+    void deletingAKingdomFreesItsNameAndMembers() {
+        KingdomSavedData data = new KingdomSavedData();
+        Kingdom kingdom = found(data, FOUNDER, "Aldenbruk");
+        data.addMember(kingdom.id(), MEMBER);
+
+        assertTrue(data.deleteKingdom(kingdom.id()));
+        assertTrue(data.find(kingdom.id()).isEmpty());
+        assertTrue(data.findByName("Aldenbruk").isEmpty());
+        assertFalse(data.hasKingdom(FOUNDER));
+        assertFalse(data.hasKingdom(MEMBER));
+        assertFalse(data.deleteKingdom(kingdom.id()));
+        // The old founder and name are free to be used again.
+        assertEquals("Aldenbruk", found(data, FOUNDER, "Aldenbruk").name());
+    }
+
+    @Test
+    void transferringTheFoundingGoesOnlyToAMember() {
+        KingdomSavedData data = new KingdomSavedData();
+        Kingdom kingdom = found(data, FOUNDER, "Aldenbruk");
+
+        assertTrue(data.transferFounder(kingdom.id(), MEMBER).isEmpty());
+        data.addMember(kingdom.id(), MEMBER);
+        Kingdom transferred = data.transferFounder(kingdom.id(), MEMBER).orElseThrow();
+
+        assertTrue(transferred.isFounder(MEMBER));
+        assertFalse(transferred.isFounder(FOUNDER));
+        assertTrue(transferred.isMember(FOUNDER));
+        assertTrue(data.updateCurrencyName(kingdom.id(), FOUNDER, "Ouro").isEmpty());
+        assertEquals("Ouro", data.updateCurrencyName(kingdom.id(), MEMBER, "Ouro").orElseThrow().currencyName());
+    }
 }
