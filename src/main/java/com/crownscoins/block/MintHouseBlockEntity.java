@@ -27,6 +27,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.HopperBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BedPart;
 import net.minecraft.world.level.storage.ValueInput;
@@ -50,7 +51,8 @@ public final class MintHouseBlockEntity extends BlockEntity implements WorldlyCo
     public static final int FURNACE_SLOT = COIN_STORAGE_SLOTS;
     private static final int[] COIN_SLOTS = IntStream.range(0, COIN_STORAGE_SLOTS).toArray();
     private static final int[] FURNACE_SLOTS = {FURNACE_SLOT};
-    public static final int FURNACE_TICKS_PER_COIN = 20;
+    /** Pulling nuggets from a neighbouring container: how often it is tried. */
+    private static final int PULL_INTERVAL_TICKS = 8;
 
     private UUID kingdomId;
     private final NonNullList<ItemStack> coinStorage = NonNullList.withSize(COIN_STORAGE_SLOTS, ItemStack.EMPTY);
@@ -102,7 +104,77 @@ public final class MintHouseBlockEntity extends BlockEntity implements WorldlyCo
         if (!(level instanceof ServerLevel serverLevel)) {
             return;
         }
+        if (CrownsCoinsConfig.PULL_NUGGETS_FROM_NEIGHBOURS.get() && serverLevel.getGameTime() % PULL_INTERVAL_TICKS == 0) {
+            mintHouse.pullNuggetsFromNeighbours(serverLevel);
+        }
         mintHouse.smeltOneCoin(serverLevel);
+    }
+
+    /**
+     * Pulls nuggets into the furnace from containers touching either half of the Mint House
+     * (chests, barrels, shulker boxes, a hopper...). It tops the furnace up to a full stack of
+     * the nugget it already holds, or starts with the first nugget it finds, and only works once
+     * the Mint House belongs to a kingdom (otherwise the nuggets would just sit there).
+     */
+    private void pullNuggetsFromNeighbours(ServerLevel level) {
+        if (kingdomId == null || !(level.getBlockState(this.worldPosition).getBlock() instanceof MintHouseBlock)) {
+            return;
+        }
+        ItemStack current = furnaceInput.getItem(0);
+        if (!current.isEmpty() && (metalForNugget(current).isEmpty() || current.getCount() >= current.getMaxStackSize())) {
+            return;
+        }
+        BlockPos headPos = this.worldPosition.relative(this.getBlockState().getValue(MintHouseBlock.FACING).getClockWise());
+        for (BlockPos half : new BlockPos[] {this.worldPosition, headPos}) {
+            for (Direction direction : Direction.values()) {
+                BlockPos neighbour = half.relative(direction);
+                if (neighbour.equals(this.worldPosition) || neighbour.equals(headPos)
+                    || level.getBlockState(neighbour).getBlock() instanceof MintHouseBlock) {
+                    continue;
+                }
+                Container source = HopperBlockEntity.getContainerAt(level, neighbour);
+                if (source != null && pullFrom(source, direction.getOpposite())) {
+                    return;
+                }
+            }
+        }
+    }
+
+    /** Moves nuggets from one container into the furnace input; returns true if any moved. */
+    private boolean pullFrom(Container source, Direction sideOfSource) {
+        int[] slots = source instanceof WorldlyContainer worldly
+            ? worldly.getSlotsForFace(sideOfSource)
+            : IntStream.range(0, source.getContainerSize()).toArray();
+        for (int slot : slots) {
+            ItemStack stack = source.getItem(slot);
+            if (stack.isEmpty() || metalForNugget(stack).isEmpty()) {
+                continue;
+            }
+            if (source instanceof WorldlyContainer worldly && !worldly.canTakeItemThroughFace(slot, stack, sideOfSource)) {
+                continue;
+            }
+            ItemStack current = furnaceInput.getItem(0);
+            if (!current.isEmpty() && !ItemStack.isSameItemSameComponents(current, stack)) {
+                continue;
+            }
+            int room = stack.getMaxStackSize() - current.getCount();
+            if (room <= 0) {
+                return false;
+            }
+            ItemStack taken = source.removeItem(slot, Math.min(room, stack.getCount()));
+            if (taken.isEmpty()) {
+                continue;
+            }
+            if (current.isEmpty()) {
+                furnaceInput.setItem(0, taken);
+            } else {
+                current.grow(taken.getCount());
+                furnaceInput.setChanged();
+            }
+            source.setChanged();
+            return true;
+        }
+        return false;
     }
 
     private void smeltOneCoin(ServerLevel level) {
@@ -116,7 +188,8 @@ public final class MintHouseBlockEntity extends BlockEntity implements WorldlyCo
         }
 
         furnaceTicks++;
-        if (furnaceTicks < FURNACE_TICKS_PER_COIN) {
+        int ticksNeeded = furnaceTicksPerCoin();
+        if (furnaceTicks < ticksNeeded) {
             setWorking(level, true);
             return;
         }
@@ -124,7 +197,7 @@ public final class MintHouseBlockEntity extends BlockEntity implements WorldlyCo
         ItemStack baseCoin = MintHouseMenu.createBaseCoin(kingdom.get(), metal.get());
         if (!canStoreCoins(baseCoin)) {
             // The chest is full: the fire goes out until there is room again.
-            furnaceTicks = FURNACE_TICKS_PER_COIN;
+            furnaceTicks = ticksNeeded;
             setWorking(level, false);
             return;
         }
@@ -162,7 +235,12 @@ public final class MintHouseBlockEntity extends BlockEntity implements WorldlyCo
         }
     }
 
-    /** Ticks smelted so far for the current coin, 0 to {@link #FURNACE_TICKS_PER_COIN}; synchronized to the furnace screen. */
+    /** How many ticks one coin takes, from the server config. */
+    public static int furnaceTicksPerCoin() {
+        return CrownsCoinsConfig.FURNACE_TICKS_PER_COIN.get();
+    }
+
+    /** Ticks smelted so far for the current coin, 0 up to {@link #furnaceTicksPerCoin()}; synchronized to the furnace screen. */
     public int furnaceProgress() {
         return furnaceTicks;
     }

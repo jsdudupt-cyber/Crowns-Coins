@@ -51,7 +51,7 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
      */
     private static final int PLAYER_MAIN_END = PLAYER_SLOT_START + 18;
     private static final int PLAYER_SLOT_END = PLAYER_MAIN_END + 9;
-    private static final int PROGRESS_DATA_COUNT = 2;
+    private static final int PROGRESS_DATA_COUNT = 3;
     private final Container furnaceInput;
     private int page;
     /** Smelting ticks and a working flag, synchronized from the block entity to the open screen. */
@@ -137,7 +137,12 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
         this.page = Math.max(0, Math.min(CHEST_PAGE_COUNT - 1, page));
     }
 
-    /** Ticks smelted so far for the current coin (0 to {@link MintHouseBlockEntity#FURNACE_TICKS_PER_COIN}). */
+    /** Ticks the furnace needs for one coin; from the server config, so the bar fills over the real time. */
+    public int progressNeeded() {
+        return Math.max(1, this.progress.get(2));
+    }
+
+    /** Ticks smelted so far for the current coin (0 up to {@link #progressNeeded()}). */
     public int progressTicks() {
         return this.progress.get(0);
     }
@@ -155,7 +160,11 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
                 if (!(inventory.player.level().getBlockEntity(mintHousePos) instanceof MintHouseBlockEntity mintHouse)) {
                     return 0;
                 }
-                return index == 0 ? mintHouse.furnaceProgress() : mintHouse.isFurnaceWorking() ? 1 : 0;
+                return switch (index) {
+                    case 0 -> mintHouse.furnaceProgress();
+                    case 1 -> mintHouse.isFurnaceWorking() ? 1 : 0;
+                    default -> MintHouseBlockEntity.furnaceTicksPerCoin();
+                };
             }
 
             @Override

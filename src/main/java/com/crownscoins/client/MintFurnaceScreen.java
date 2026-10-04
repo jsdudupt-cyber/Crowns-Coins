@@ -1,7 +1,6 @@
 package com.crownscoins.client;
 
 import com.crownscoins.CrownsCoins;
-import com.crownscoins.block.MintHouseBlockEntity;
 import com.crownscoins.menu.MintFurnaceMenu;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -149,7 +148,7 @@ public final class MintFurnaceScreen extends AbstractContainerScreen<MintFurnace
         if (!this.menu.isWorking()) {
             return;
         }
-        float fraction = Math.min(1.0F, (this.menu.progressTicks() + partialTick) / MintHouseBlockEntity.FURNACE_TICKS_PER_COIN);
+        float fraction = Math.min(1.0F, (this.menu.progressTicks() + partialTick) / this.menu.progressNeeded());
         int width = Math.round(TROUGH_WIDTH * fraction);
         if (width <= 0) {
             return;

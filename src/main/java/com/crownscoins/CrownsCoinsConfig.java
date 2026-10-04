@@ -27,6 +27,20 @@ public final class CrownsCoinsConfig {
         )
         .define("allowHopperOutput", true);
 
+    public static final ModConfigSpec.IntValue FURNACE_TICKS_PER_COIN = BUILDER
+        .comment(
+            "How long the furnace takes to turn the nuggets of one coin into a base coin, in game ticks",
+            "(20 ticks = 1 second). The default is 4 seconds; the progress bar follows this value."
+        )
+        .defineInRange("furnaceTicksPerCoin", 80, 5, 2400);
+
+    public static final ModConfigSpec.BooleanValue PULL_NUGGETS_FROM_NEIGHBOURS = BUILDER
+        .comment(
+            "Let the furnace pull nuggets by itself from a chest, barrel or other container touching the",
+            "Mint House, so nuggets do not have to be placed by hand every time. A hopper works too."
+        )
+        .define("pullNuggetsFromNeighbours", true);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     private CrownsCoinsConfig() {
