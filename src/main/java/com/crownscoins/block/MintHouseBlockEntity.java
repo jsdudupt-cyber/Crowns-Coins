@@ -396,7 +396,7 @@ public final class MintHouseBlockEntity extends BlockEntity implements WorldlyCo
     public void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
         kingdomId = input.read("kingdom_id", UUIDUtil.CODEC).orElse(null);
-        furnaceInput.setItem(0, input.read("furnace_input", ItemStack.CODEC).orElse(ItemStack.EMPTY));
+        furnaceInput.setItem(0, input.read("furnace_input", ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY));
         furnaceTicks = input.read("furnace_ticks", Codec.INT).orElse(0);
         for (int slot = 0; slot < COIN_STORAGE_SLOTS; slot++) {
             this.coinStorage.set(slot, ItemStack.EMPTY);
@@ -408,7 +408,8 @@ public final class MintHouseBlockEntity extends BlockEntity implements WorldlyCo
     public void saveAdditional(ValueOutput output) {
         super.saveAdditional(output);
         output.storeNullable("kingdom_id", UUIDUtil.CODEC, kingdomId);
-        output.store("furnace_input", ItemStack.CODEC, furnaceInput.getItem(0));
+        // OPTIONAL_CODEC accepts an empty stack; the plain codec logs a serialization error on every save of an idle furnace.
+        output.store("furnace_input", ItemStack.OPTIONAL_CODEC, furnaceInput.getItem(0));
         output.store("furnace_ticks", Codec.INT, furnaceTicks);
         ContainerHelper.saveAllItems(output, this.coinStorage);
     }
