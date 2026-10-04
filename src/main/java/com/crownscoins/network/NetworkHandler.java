@@ -1,5 +1,6 @@
 package com.crownscoins.network;
 
+import com.crownscoins.menu.MintHouseMenu;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -7,7 +8,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 /** Common, dedicated-server-safe registration and dispatch for Crowns & Coins payloads. */
 public final class NetworkHandler {
-    public static final String NETWORK_VERSION = "7";
+    public static final String NETWORK_VERSION = "8";
 
     private NetworkHandler() {}
 
@@ -23,6 +24,15 @@ public final class NetworkHandler {
         registrar.playToServer(UpdateCurrencyNamePayload.TYPE, UpdateCurrencyNamePayload.STREAM_CODEC, NetworkHandler::handleUpdateCurrencyName);
         registrar.playToServer(UpdateKingdomNamePayload.TYPE, UpdateKingdomNamePayload.STREAM_CODEC, NetworkHandler::handleUpdateKingdomName);
         registrar.playToServer(UpdateMembersPayload.TYPE, UpdateMembersPayload.STREAM_CODEC, NetworkHandler::handleUpdateMembers);
+        registrar.playToClient(KingdomInfoPayload.TYPE, KingdomInfoPayload.STREAM_CODEC, NetworkHandler::handleKingdomInfo);
+    }
+
+    /** Runs on the client: refreshes the names shown by the matching open Mint House menu. */
+    private static void handleKingdomInfo(KingdomInfoPayload payload, IPayloadContext context) {
+        if (context.player().containerMenu instanceof MintHouseMenu menu
+                && menu.containerId == payload.containerId()) {
+            menu.applyKingdomInfo(payload.kingdomName(), payload.currencyName(), payload.memberNames());
+        }
     }
 
     private static void handleUpdateMembers(UpdateMembersPayload payload, IPayloadContext context) {

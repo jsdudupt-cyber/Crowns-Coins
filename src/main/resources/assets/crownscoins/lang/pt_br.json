@@ -180,7 +180,7 @@
   "gui.crownscoins.add_member": "Adicionar",
   "gui.crownscoins.remove_member": "Remover",
   "gui.crownscoins.members_hint": "Membros usam a fornalha, a arca e a cunhagem.",
-  "gui.crownscoins.member_sent": "Pedido enviado. Reabra para atualizar a lista.",
+  "gui.crownscoins.member_sent": "Pedido enviado.",
   "message.crownscoins.member_added": "%s agora é membro do seu reino.",
   "message.crownscoins.member_removed": "%s foi removido do seu reino.",
   "message.crownscoins.member_rejected": "Não foi possível adicionar ou remover %s. O jogador pode já ter um reino, ou ser o fundador.",

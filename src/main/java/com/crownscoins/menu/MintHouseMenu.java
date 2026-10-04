@@ -7,6 +7,7 @@ import com.crownscoins.kingdom.Kingdom;
 import com.crownscoins.kingdom.KingdomCrest;
 import com.crownscoins.kingdom.KingdomSavedData;
 import com.crownscoins.kingdom.Symbol;
+import com.crownscoins.network.KingdomInfoPayload;
 import com.crownscoins.network.MintCoinPayload;
 import com.crownscoins.network.NetworkHandler;
 import com.crownscoins.network.UpdateCurrencyNamePayload;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import net.minecraft.server.MinecraftServer;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.minecraft.server.players.NameAndId;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
@@ -62,7 +64,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
     private static final int COIN_STORAGE_SLOT_END = COIN_STORAGE_SLOT_START + MintHouseBlockEntity.COIN_STORAGE_SLOTS;
     private static final int HOTBAR_SLOT_START = COIN_STORAGE_SLOT_END;
     private static final int HOTBAR_SLOT_END = HOTBAR_SLOT_START + 9;
-    private final ClientMintData clientData;
+    private ClientMintData clientData;
     /** Persistent 27-slot coin chest held by the exact Mint House block entity. */
     private final Container coinStorage;
 
@@ -224,6 +226,26 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             payload.add() ? "message.crownscoins.member_added" : "message.crownscoins.member_removed",
             target.get().name()
         ));
+        pushKingdomInfo(player);
+    }
+
+    /** Sends the current names and members to the open screen so it never shows stale data. */
+    private void pushKingdomInfo(ServerPlayer player) {
+        ServerLevel level = (ServerLevel) player.level();
+        currentMintHouse(player)
+            .flatMap(MintHouseBlockEntity::kingdomId)
+            .flatMap(kingdomId -> KingdomSavedData.get(level).find(kingdomId))
+            .ifPresent(kingdom -> PacketDistributor.sendToPlayer(player, new KingdomInfoPayload(
+                this.containerId,
+                kingdom.name(),
+                kingdom.currencyName(),
+                memberNames(level, kingdom)
+            )));
+    }
+
+    /** Client side: applies a refresh pushed by the server to the data the screen reads. */
+    public void applyKingdomInfo(String kingdomName, String currencyName, List<String> memberNames) {
+        this.clientData = this.clientData.withInfo(kingdomName, currencyName, memberNames);
     }
 
     private static Optional<NameAndId> resolvePlayer(ServerLevel level, String name) {
@@ -305,6 +327,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             return;
         }
         player.sendSystemMessage(Component.translatable("message.crownscoins.currency_name_saved", updated.get().currencyName()));
+        pushKingdomInfo(player);
     }
 
     /** The founder can rename only the real kingdom bound to this exact Mint House. */
@@ -330,6 +353,7 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             return;
         }
         player.sendSystemMessage(Component.translatable("message.crownscoins.kingdom_name_saved", updated.get().name()));
+        pushKingdomInfo(player);
     }
 
     /**
@@ -607,6 +631,11 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         boolean canEditCurrency,
         List<String> memberNames
     ) {
+        /** Same snapshot with refreshed names and members; the crest and permissions are unchanged. */
+        private ClientMintData withInfo(String newKingdomName, String newCurrencyName, List<String> newMemberNames) {
+            return new ClientMintData(newKingdomName, newCurrencyName, crest, canEditCurrency, List.copyOf(newMemberNames));
+        }
+
         private static ClientMintData empty() {
             return new ClientMintData("", "", Symbol.CROWN, false, List.of());
         }

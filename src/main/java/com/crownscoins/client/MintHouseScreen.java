@@ -96,7 +96,8 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         "royal_12"
     };
 
-    private final MintHouseMenu.ClientMintData display;
+    /** Refreshed every tick: the server pushes new names and members while the screen is open. */
+    private MintHouseMenu.ClientMintData display;
     private final List<ShapeButton> shapeButtons = new ArrayList<>();
     private Kingdom.Metal selectedMetal = Kingdom.Metal.COPPER;
     /** Null until the synchronized input socket holds a supported nugget. */
@@ -274,6 +275,7 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     @Override
     protected void containerTick() {
         super.containerTick();
+        this.display = this.menu.clientData();
         if (this.mintAnimationTicks > 0) {
             this.mintAnimationTicks--;
         }
@@ -594,9 +596,7 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
 
     /** Replaces the names painted in the mockup with the live kingdom data. */
     private void renderDesignHeaderText(GuiGraphicsExtractor graphics, int left, int top) {
-        graphics.fill(left + 66, top + 36, left + 201, top + 60, PANEL_INNER);
         graphics.text(this.font, Component.literal(shortName(this.display.kingdomName(), 16)), left + 72, top + 43, GOLD);
-        graphics.fill(left + 285, top + 36, left + 405, top + 60, PANEL_INNER);
         graphics.blit(
             RenderPipelines.GUI_TEXTURED,
             coinShapeTexture(this.selectedMetal, visualShape()),
@@ -717,7 +717,7 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     private void renderSettingsBackground(GuiGraphicsExtractor graphics, int left, int top) {
         // The body replaces the working view but leaves the supplied header
         // visible, including the correctly placed gear icon.
-        renderWorkbenchPanel(graphics, left + 12, top + 80, 456, 268);
+        renderWorkbenchPanel(graphics, left + 12, top + 68, 456, 280);
     }
 
     private void renderSettingsText(GuiGraphicsExtractor graphics, int left, int top) {

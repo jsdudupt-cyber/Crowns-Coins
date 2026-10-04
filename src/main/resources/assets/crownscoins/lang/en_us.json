@@ -180,7 +180,7 @@
   "gui.crownscoins.add_member": "Add",
   "gui.crownscoins.remove_member": "Remove",
   "gui.crownscoins.members_hint": "Members use the furnace, chest and minting.",
-  "gui.crownscoins.member_sent": "Request sent. Reopen to refresh the list.",
+  "gui.crownscoins.member_sent": "Request sent.",
   "message.crownscoins.member_added": "%s is now a member of your kingdom.",
   "message.crownscoins.member_removed": "%s was removed from your kingdom.",
   "message.crownscoins.member_rejected": "%s could not be added or removed. They may already belong to a kingdom, or be the founder.",
