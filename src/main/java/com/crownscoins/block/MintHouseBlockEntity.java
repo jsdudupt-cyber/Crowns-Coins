@@ -151,13 +151,8 @@ public final class MintHouseBlockEntity extends BlockEntity implements WorldlyCo
         if (litSynced && working == furnaceWorking) {
             return;
         }
-        // A real transition (not the first check after loading) gets a small ignition sound.
-        boolean ignited = litSynced && working;
         litSynced = true;
         furnaceWorking = working;
-        if (ignited) {
-            level.playSound(null, this.worldPosition, SoundEvents.FIRECHARGE_USE, SoundSource.BLOCKS, 0.5F, 1.1F);
-        }
         BlockPos headPos = this.worldPosition.relative(this.getBlockState().getValue(MintHouseBlock.FACING).getClockWise());
         BlockState head = level.getBlockState(headPos);
         if (head.is(CrownsCoins.MINT_HOUSE.get())
