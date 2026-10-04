@@ -30,6 +30,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import com.crownscoins.block.MintHouseBlock;
 import com.crownscoins.block.MintHouseBlockEntity;
 import com.crownscoins.block.CurrencyExchangeBlock;
+import com.crownscoins.block.CurrencyExchangeBlockEntity;
 import com.crownscoins.network.NetworkHandler;
 import com.crownscoins.menu.CurrencyExchangeMenu;
 import com.crownscoins.menu.KingdomCreationMenu;
@@ -68,6 +69,7 @@ public final class CrownsCoins {
         () -> BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(3.0F)
     );
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MintHouseBlockEntity>> MINT_HOUSE_ENTITY = BLOCK_ENTITIES.register("mint_house", () -> new BlockEntityType<>(MintHouseBlockEntity::new, false, MINT_HOUSE.get()));
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<CurrencyExchangeBlockEntity>> CURRENCY_EXCHANGE_ENTITY = BLOCK_ENTITIES.register("currency_exchange", () -> new BlockEntityType<>(CurrencyExchangeBlockEntity::new, false, CURRENCY_EXCHANGE.get()));
     public static final DeferredItem<BlockItem> MINT_HOUSE_ITEM = ITEMS.registerSimpleBlockItem("mint_house", MINT_HOUSE);
     public static final DeferredItem<BlockItem> CURRENCY_EXCHANGE_ITEM = ITEMS.registerSimpleBlockItem("currency_exchange", CURRENCY_EXCHANGE);
     public static final DeferredItem<Item> IRON_COIN = ITEMS.registerItem("iron_coin", CoinItem::new, p -> p.stacksTo(64));
