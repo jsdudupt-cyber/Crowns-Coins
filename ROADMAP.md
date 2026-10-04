@@ -10,7 +10,8 @@ Ordem de merge: `feature/kingdom-members` → `cleanup/coin-data` → `fix/heade
 
 ## A fazer
 1. [ ] **Testar no jogo** (só o usuário consegue): alinhamento dos slots, lista de membros, funis,
-       seletor de quantidade, cabeçalho da cunhagem, moedas novas, ícone 3D da Casa de Câmbio.
+       seletor de quantidade, cabeçalho e painel da cunhagem, moedas novas, ícone e texturas da Casa de Câmbio,
+       fornalha acendendo no mundo (chamas e luz) e a barra de progresso da tela da fornalha.
        Corrigir o que o usuário reportar (ele manda captura de tela).
 2. [ ] **Fazer o merge dos PRs** (usuário). Depois: atualizar o `main` local e apagar as branches
        antigas (**só com autorização**).
@@ -37,3 +38,6 @@ Ordem de merge: `feature/kingdom-members` → `cleanup/coin-data` → `fix/heade
 - [x] Testes automáticos (24) e limpeza do `CoinData`.
 - [x] Cabeçalho limpo, nomes atualizando ao vivo, 36 moedas novas, item 3D da Casa de Câmbio.
 - [x] Texturas do bloco da Casa de Câmbio redesenhadas (madeira escura, ferro e ouro). Originais em `designs/backup_currency_exchange_block_v1/`.
+- [x] Painel de cunhagem refeito (caixas 28 px, contagem na caixa, botões 1/8/64/Tudo sem sobreposição), placas texturizadas e centralizadas no cabeçalho, texto de status removido da tela de cunhagem.
+- [x] Fornalha: barra de progresso real e alinhada, painéis de carvão calmos (sem faíscas), bloco acende com chamas animadas e luz enquanto funde.
+- [x] Arquivos de instruções: `CLAUDE.md`, `ROADMAP.md` e lista de comandos permitidos em `.claude/settings.json`.
