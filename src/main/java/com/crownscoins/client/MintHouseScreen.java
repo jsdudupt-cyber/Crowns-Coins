@@ -49,8 +49,13 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     private static final int[] QUANTITY_CHOICES = {1, 8, 64, MintCoinPayload.ALL};
     private static final int[] QUANTITY_BUTTON_X = {332, 363, 394, 425};
     private static final int[] QUANTITY_BUTTON_WIDTH = {28, 28, 28, 31};
-    private static final int QUANTITY_BUTTON_Y = 252;
-    private static final int QUANTITY_BUTTON_HEIGHT = 14;
+    private static final int QUANTITY_BUTTON_Y = 255;
+    private static final int QUANTITY_BUTTON_HEIGHT = 13;
+    /** The two 28px coin slots painted into the minting panel of the texture. */
+    private static final int BASE_SLOT_X = 343;
+    private static final int RESULT_SLOT_X = 416;
+    private static final int COIN_SLOT_Y = 224;
+    private static final int COIN_SLOT_SIZE = 28;
     /** Members section of the settings view: list box above one row of controls. */
     private static final int MEMBER_LIST_X = 40;
     private static final int MEMBER_LIST_Y = 228;
@@ -171,6 +176,9 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
                     QUANTITY_BUTTON_WIDTH[index],
                     QUANTITY_BUTTON_HEIGHT
                 )
+                .tooltip(Tooltip.create(choice == MintCoinPayload.ALL
+                    ? gui("quantity_tooltip_all")
+                    : gui("quantity_tooltip", choice)))
                 .build())));
         }
 
@@ -678,8 +686,6 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     private void renderActionPanel(GuiGraphicsExtractor graphics, int left, int top) {
         int available = this.detectedMetal == null ? 0 : Math.max(0, this.menu.mintableCoinCountFor(this.selectedMetal));
         int quantity = mintAmount(available);
-        graphics.centeredText(this.font, gui("base_and_amount", available, quantity),
-            left + MintHouseLayout.ACTION_PANEL_X + MintHouseLayout.ACTION_PANEL_WIDTH / 2, top + 216, SUBTLE_TEXT);
         for (int index = 0; index < QUANTITY_CHOICES.length; index++) {
             int choice = QUANTITY_CHOICES[index];
             Component label = choice == MintCoinPayload.ALL ? gui("quantity_all") : Component.literal(Integer.toString(choice));
@@ -687,22 +693,11 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
                 QUANTITY_BUTTON_WIDTH[index], QUANTITY_BUTTON_HEIGHT, label, true, choice == this.selectedQuantity);
         }
         if (this.detectedMetal != null) {
-            graphics.blit(RenderPipelines.GUI_TEXTURED, coinShapeTexture(this.selectedMetal, 1), left + 342, top + 226,
-                0.0F, 0.0F, 20, 20, 16, 16, 16, 16);
-            graphics.blit(
-                RenderPipelines.GUI_TEXTURED,
-                coinShapeTexture(this.selectedMetal, visualShape()),
-                left + 417,
-                top + 226,
-                0.0F,
-                0.0F,
-                20,
-                20,
-                16,
-                16,
-                16,
-                16
-            );
+            // 16px coins centred in the two 28px slots painted into the texture,
+            // each with its amount in the corner like a vanilla stack count.
+            renderSlotCoin(graphics, left + BASE_SLOT_X, top + COIN_SLOT_Y, coinShapeTexture(this.selectedMetal, 1), available);
+            renderSlotCoin(graphics, left + RESULT_SLOT_X, top + COIN_SLOT_Y,
+                coinShapeTexture(this.selectedMetal, visualShape()), quantity);
         }
         if (this.confirmButton == null || !this.confirmButton.active) {
             graphics.fill(left + MintHouseLayout.CONFIRM_X, top + MintHouseLayout.CONFIRM_Y,
@@ -712,6 +707,17 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
             graphics.outline(left + MintHouseLayout.CONFIRM_X, top + MintHouseLayout.CONFIRM_Y,
                 MintHouseLayout.CONFIRM_WIDTH, MintHouseLayout.CONFIRM_HEIGHT, GOLD);
         }
+    }
+
+    /** Draws one coin centred in a painted slot, with its amount in the lower-right corner. */
+    private void renderSlotCoin(GuiGraphicsExtractor graphics, int slotX, int slotY, Identifier texture, int amount) {
+        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, slotX + (COIN_SLOT_SIZE - 16) / 2, slotY + (COIN_SLOT_SIZE - 16) / 2,
+            0.0F, 0.0F, 16, 16, 16, 16, 16, 16);
+        Component count = Component.literal(Integer.toString(amount));
+        int textX = slotX + COIN_SLOT_SIZE - 3 - this.font.width(count);
+        int textY = slotY + COIN_SLOT_SIZE - 11;
+        graphics.text(this.font, count, textX + 1, textY + 1, 0xFF000000);
+        graphics.text(this.font, count, textX, textY, 0xFFFFFFFF);
     }
 
     private void renderSettingsBackground(GuiGraphicsExtractor graphics, int left, int top) {
