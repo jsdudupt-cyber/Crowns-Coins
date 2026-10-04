@@ -107,6 +107,7 @@ public final class KingdomCreationMenu extends MintHouseBoundMenu implements Net
                 details.crest()
             );
             mintHouse.get().bind(kingdom.id());
+            com.crownscoins.network.KingdomSync.sendToAll(player.level().getServer());
             ModAdvancements.award(player, ModAdvancements.KINGDOM);
             player.sendSystemMessage(Component.translatable("message.crownscoins.kingdom_created", kingdom.name()));
         } catch (IllegalArgumentException | IllegalStateException ignored) {

@@ -228,7 +228,6 @@ public final class CurrencyExchangeMenu extends AbstractContainerMenu {
             // The design (shape) is preserved when a denomination is converted.
             original.shapeId()
         ));
-        output.set(DataComponents.CUSTOM_NAME, Component.literal(original.currencyName()));
         return output;
     }
 

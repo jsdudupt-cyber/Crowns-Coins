@@ -119,6 +119,7 @@ public final class KingdomCommands {
         }
         Kingdom kingdom = found.get();
         KingdomSavedData.get(context.getSource().getLevel()).deleteKingdom(kingdom.id());
+        com.crownscoins.network.KingdomSync.sendToAll(context.getSource().getServer());
         context.getSource().sendSuccess(() -> Component.translatable("command.crownscoins.deleted", kingdom.name()), true);
         return 1;
     }

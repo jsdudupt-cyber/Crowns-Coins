@@ -8,7 +8,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 /** Common, dedicated-server-safe registration and dispatch for Crowns & Coins payloads. */
 public final class NetworkHandler {
-    public static final String NETWORK_VERSION = "8";
+    public static final String NETWORK_VERSION = "9";
 
     private NetworkHandler() {}
 
@@ -25,6 +25,12 @@ public final class NetworkHandler {
         registrar.playToServer(UpdateKingdomNamePayload.TYPE, UpdateKingdomNamePayload.STREAM_CODEC, NetworkHandler::handleUpdateKingdomName);
         registrar.playToServer(UpdateMembersPayload.TYPE, UpdateMembersPayload.STREAM_CODEC, NetworkHandler::handleUpdateMembers);
         registrar.playToClient(KingdomInfoPayload.TYPE, KingdomInfoPayload.STREAM_CODEC, NetworkHandler::handleKingdomInfo);
+        registrar.playToClient(KingdomNamesPayload.TYPE, KingdomNamesPayload.STREAM_CODEC, NetworkHandler::handleKingdomNames);
+    }
+
+    /** Runs on the client: replaces the cached current names used by coin titles and tooltips. */
+    private static void handleKingdomNames(KingdomNamesPayload payload, IPayloadContext context) {
+        com.crownscoins.coin.KingdomNames.replaceAll(payload.entries());
     }
 
     /** Runs on the client: refreshes the names shown by the matching open Mint House menu. */
@@ -93,6 +99,7 @@ public final class NetworkHandler {
             return;
         }
         menu.handleCurrencyNameRequest(player, payload);
+        KingdomSync.sendToAll(player.level().getServer());
     }
 
     private static void handleUpdateKingdomName(UpdateKingdomNamePayload payload, IPayloadContext context) {
@@ -108,6 +115,7 @@ public final class NetworkHandler {
             return;
         }
         menu.handleKingdomNameRequest(player, payload);
+        KingdomSync.sendToAll(player.level().getServer());
     }
 
     /** Implemented only by the live server-side kingdom-creation menu. */

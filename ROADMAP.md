@@ -29,8 +29,8 @@ público (proteção contra roubo, publicação, testes automáticos) fica para 
 6. [x] **Apagar arquivos sem uso** (feito com `git rm`, 454 arquivos; recuperáveis pelo histórico) em `src/main/resources/assets/crownscoins/`:
        `textures/item/overlay/`, `textures/item/coin/`, `models/item/overlay/`, `models/item/coin/`
        (~500 KB, nenhum item os referencia). **Precisa de autorização explícita antes de apagar.**
-7. [ ] **Nome do reino nas moedas antigas:** hoje cada moeda guarda uma cópia do nome. Decidir com o
-       usuário se renomear o reino deve atualizar as moedas já cunhadas.
+7. [x] **Nome do reino nas moedas antigas:** feito. O servidor envia os nomes atuais (`KingdomNamesPayload`)
+       e a moeda (`CoinItem`) mostra o nome novo no título e na dica. Falta testar no jogo.
 8. [ ] **Mais uso para as moedas** (decisão dos amigos): troca com aldeões ou barril de loja.
        Já existem `/crownscoins balance` e `/crownscoins pay`.
 

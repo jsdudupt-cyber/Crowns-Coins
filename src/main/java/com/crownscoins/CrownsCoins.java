@@ -2,6 +2,7 @@ package com.crownscoins;
 
 import com.mojang.logging.LogUtils;
 import com.crownscoins.coin.CoinData;
+import com.crownscoins.coin.CoinItem;
 import com.crownscoins.kingdom.Kingdom;
 import com.crownscoins.kingdom.Symbol;
 import java.util.List;
@@ -69,9 +70,9 @@ public final class CrownsCoins {
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MintHouseBlockEntity>> MINT_HOUSE_ENTITY = BLOCK_ENTITIES.register("mint_house", () -> new BlockEntityType<>(MintHouseBlockEntity::new, false, MINT_HOUSE.get()));
     public static final DeferredItem<BlockItem> MINT_HOUSE_ITEM = ITEMS.registerSimpleBlockItem("mint_house", MINT_HOUSE);
     public static final DeferredItem<BlockItem> CURRENCY_EXCHANGE_ITEM = ITEMS.registerSimpleBlockItem("currency_exchange", CURRENCY_EXCHANGE);
-    public static final DeferredItem<Item> IRON_COIN = ITEMS.registerSimpleItem("iron_coin", p -> p.stacksTo(64));
-    public static final DeferredItem<Item> COPPER_COIN = ITEMS.registerSimpleItem("copper_coin", p -> p.stacksTo(64));
-    public static final DeferredItem<Item> GOLD_COIN = ITEMS.registerSimpleItem("gold_coin", p -> p.stacksTo(64));
+    public static final DeferredItem<Item> IRON_COIN = ITEMS.registerItem("iron_coin", CoinItem::new, p -> p.stacksTo(64));
+    public static final DeferredItem<Item> COPPER_COIN = ITEMS.registerItem("copper_coin", CoinItem::new, p -> p.stacksTo(64));
+    public static final DeferredItem<Item> GOLD_COIN = ITEMS.registerItem("gold_coin", CoinItem::new, p -> p.stacksTo(64));
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<CoinData>> COIN_DATA = DATA_COMPONENTS.registerComponentType(
         "coin_data",
         builder -> builder.persistent(CoinData.CODEC).networkSynchronized(CoinData.STREAM_CODEC).cacheEncoding()

@@ -85,8 +85,8 @@ public record CoinData(
 
     @Override
     public void addToTooltip(Item.TooltipContext context, java.util.function.Consumer<Component> tooltip, TooltipFlag tooltipFlag, DataComponentGetter components) {
-        tooltip.accept(Component.translatable("tooltip.crownscoins.currency", currencyName));
-        tooltip.accept(Component.translatable("tooltip.crownscoins.kingdom", kingdomName));
+        tooltip.accept(Component.translatable("tooltip.crownscoins.currency", com.crownscoins.coin.KingdomNames.currencyName(this)));
+        tooltip.accept(Component.translatable("tooltip.crownscoins.kingdom", com.crownscoins.coin.KingdomNames.kingdomName(this)));
         tooltip.accept(Component.translatable("tooltip.crownscoins.value", value));
         tooltip.accept(Component.translatable("tooltip.crownscoins.metal", materialName(material)));
         if (shapeId != DEFAULT_SHAPE_ID) {

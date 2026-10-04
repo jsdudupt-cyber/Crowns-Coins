@@ -501,7 +501,6 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             request.shapeId()
         );
         coin.set(CrownsCoins.COIN_DATA.get(), coinData);
-        coin.set(DataComponents.CUSTOM_NAME, Component.literal(kingdom.currencyName()));
         coin.setCount(quantity);
         return coin;
     }
