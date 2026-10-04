@@ -172,6 +172,8 @@
   "crest.crownscoins.stag": "Stag",
   "crest.crownscoins.ship": "Ship",
   "menu.crownscoins.mint_furnace": "Coin Furnace",
+  "gui.crownscoins.chest_page_previous": "Previous page of the chest",
+  "gui.crownscoins.chest_page_next": "Next page of the chest",
   "command.crownscoins.balance_empty": "You carry no coins.",
   "command.crownscoins.balance_header": "Your coins:",
   "command.crownscoins.balance_entry": "- %s: %s (gold %s, iron %s, copper %s)",

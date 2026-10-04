@@ -23,8 +23,8 @@ público (proteção contra roubo, publicação, testes automáticos) fica para 
        antigas (**só com autorização**).
 3. [x] **Sons e partículas** (feito, falta o usuário ouvir e aprovar): fornalha crepitando com fumaça
        e chamas, "ding" a cada moeda-base, martelada com faíscas ao cunhar (sem som de ignição).
-4. [ ] **Fornalha mostra só 9 dos 27 slots da arca** (a arte tem grade 3×3). Precisa de rolagem e arte
-       nova. **Prévia antes.**
+4. [x] **Arca na fornalha com rolagem** (feito, falta o usuário testar): 3 páginas de 9 slots, setas ao lado da grade,
+       indicador "1/3" e roda do mouse. Só visualização; as moedas se mexem na Linha de Cunhagem.
 5. [ ] **Conquistas simples** (primeiro reino, primeira moeda, etc.) para guiar os amigos.
 6. [ ] **Apagar arquivos sem uso** em `src/main/resources/assets/crownscoins/`:
        `textures/item/overlay/`, `textures/item/coin/`, `models/item/overlay/`, `models/item/coin/`

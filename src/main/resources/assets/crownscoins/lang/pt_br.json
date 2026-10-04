@@ -172,6 +172,8 @@
   "crest.crownscoins.stag": "Cervo",
   "crest.crownscoins.ship": "Navio",
   "menu.crownscoins.mint_furnace": "Fornalha de Moedas",
+  "gui.crownscoins.chest_page_previous": "Página anterior da arca",
+  "gui.crownscoins.chest_page_next": "Próxima página da arca",
   "command.crownscoins.balance_empty": "Você não carrega nenhuma moeda.",
   "command.crownscoins.balance_header": "Suas moedas:",
   "command.crownscoins.balance_entry": "- %s: %s (ouro %s, ferro %s, cobre %s)",

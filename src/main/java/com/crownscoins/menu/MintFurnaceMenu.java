@@ -38,8 +38,10 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
     public static final int PLAYER_ROW_TWO_Y = 260;
     public static final int PLAYER_HOTBAR_Y = 288;
     private static final int CHEST_SLOT_START = 1;
-    /** The painted arca shows only the first nine chest slots, and only those are menu slots. */
-    private static final int CHEST_VIEW_SLOTS = 9;
+    /** All 27 chest slots are menu slots, drawn nine at a time in the same 3x3 grid, one page at a time. */
+    public static final int CHEST_PAGE_SIZE = 9;
+    public static final int CHEST_PAGE_COUNT = MintHouseBlockEntity.COIN_STORAGE_SLOTS / CHEST_PAGE_SIZE;
+    private static final int CHEST_VIEW_SLOTS = MintHouseBlockEntity.COIN_STORAGE_SLOTS;
     private static final int CHEST_SLOT_END = CHEST_SLOT_START + CHEST_VIEW_SLOTS;
     private static final int PLAYER_SLOT_START = CHEST_SLOT_END;
     /**
@@ -51,6 +53,7 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
     private static final int PLAYER_SLOT_END = PLAYER_MAIN_END + 9;
     private static final int PROGRESS_DATA_COUNT = 2;
     private final Container furnaceInput;
+    private int page;
     /** Smelting ticks and a working flag, synchronized from the block entity to the open screen. */
     private final ContainerData progress;
 
@@ -81,9 +84,9 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
         });
         Container coinStorage = coinStorageFor(inventory, mintHousePos);
         for (int slot = 0; slot < CHEST_VIEW_SLOTS; slot++) {
-            int x = chestSlotX(slot);
-            int y = chestSlotY(slot);
-            this.addSlot(new ReadOnlyCoinSlot(coinStorage, slot, x, y));
+            int x = chestSlotX(slot % CHEST_PAGE_SIZE);
+            int y = chestSlotY(slot % CHEST_PAGE_SIZE);
+            this.addSlot(new ReadOnlyCoinSlot(coinStorage, slot, x, y, slot / CHEST_PAGE_SIZE));
         }
         addFurnaceInventorySlots(inventory);
         this.progress = inventory.player.level().isClientSide()
@@ -123,6 +126,15 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
 
     public static boolean isNugget(ItemStack stack) {
         return stack.is(Items.COPPER_NUGGET) || stack.is(Items.IRON_NUGGET) || stack.is(Items.GOLD_NUGGET);
+    }
+
+    /** The chest page being shown (0 to {@link #CHEST_PAGE_COUNT} - 1). Purely a client-side view choice. */
+    public int page() {
+        return this.page;
+    }
+
+    public void setPage(int page) {
+        this.page = Math.max(0, Math.min(CHEST_PAGE_COUNT - 1, page));
     }
 
     /** Ticks smelted so far for the current coin (0 to {@link MintHouseBlockEntity#FURNACE_TICKS_PER_COIN}). */
@@ -202,9 +214,18 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
     }
 
     /** Furnace output belongs to the shared arca; this screen shows it without moving it. */
-    private static final class ReadOnlyCoinSlot extends Slot {
-        private ReadOnlyCoinSlot(Container container, int index, int x, int y) {
+    private final class ReadOnlyCoinSlot extends Slot {
+        private final int page;
+
+        private ReadOnlyCoinSlot(Container container, int index, int x, int y, int page) {
             super(container, index, x, y);
+            this.page = page;
+        }
+
+        /** Only the slots of the page being shown are drawn and hoverable; the rest stay stacked underneath. */
+        @Override
+        public boolean isActive() {
+            return this.page == MintFurnaceMenu.this.page;
         }
 
         @Override
