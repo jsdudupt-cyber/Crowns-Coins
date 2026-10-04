@@ -17,8 +17,6 @@ Ordem de merge: `feature/kingdom-members` → `cleanup/coin-data` → `fix/heade
 3. [ ] **Apagar arquivos sem uso** em `src/main/resources/assets/crownscoins/`:
        `textures/item/overlay/`, `textures/item/coin/`, `models/item/overlay/`, `models/item/coin/`
        (~500 KB, nenhum item os referencia). **Precisa de autorização explícita antes de apagar.**
-4. [ ] **Texturas do bloco da Casa de Câmbio** (`textures/block/currency_exchange_*.png`) são simples.
-       Redesenhar no estilo madeira escura + ferro. **Mostrar prévia antes de aplicar.**
 5. [ ] **Nome do reino nas moedas antigas:** hoje cada moeda guarda uma cópia do nome. Decidir com o
        usuário se renomear o reino deve atualizar as moedas já cunhadas.
 6. [ ] **Fornalha mostra só 9 dos 27 slots da arca** (a arte tem grade 3×3). Precisa de rolagem e arte
@@ -38,3 +36,4 @@ Ordem de merge: `feature/kingdom-members` → `cleanup/coin-data` → `fix/heade
 - [x] Economia: fundir devolve o custo; valores por reino removidos.
 - [x] Testes automáticos (24) e limpeza do `CoinData`.
 - [x] Cabeçalho limpo, nomes atualizando ao vivo, 36 moedas novas, item 3D da Casa de Câmbio.
+- [x] Texturas do bloco da Casa de Câmbio redesenhadas (madeira escura, ferro e ouro). Originais em `designs/backup_currency_exchange_block_v1/`.
