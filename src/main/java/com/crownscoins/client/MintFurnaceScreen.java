@@ -1,6 +1,7 @@
 package com.crownscoins.client;
 
 import com.crownscoins.CrownsCoins;
+import com.crownscoins.block.MintHouseBlockEntity;
 import com.crownscoins.menu.MintFurnaceMenu;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -20,7 +21,11 @@ public final class MintFurnaceScreen extends AbstractContainerScreen<MintFurnace
     private static final int SLOT_BORDER = 0xFF151617;
     private static final int SLOT_EDGE = 0xFF8F8F8A;
     private static final int SLOT_FILL = 0xFF2B2D2E;
-    private int animationTick;
+    /** Inner area of the painted progress trough (measured from the texture): 82 x 5 px, centred in its 7 px well. */
+    private static final int TROUGH_X = 200;
+    private static final int TROUGH_Y = 156;
+    private static final int TROUGH_WIDTH = 82;
+    private static final int TROUGH_HEIGHT = 5;
 
     public MintFurnaceScreen(MintFurnaceMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title, WIDTH, HEIGHT);
@@ -48,25 +53,28 @@ public final class MintFurnaceScreen extends AbstractContainerScreen<MintFurnace
         );
         renderLiveSlotFrames(graphics, left, top);
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
-        drawProgress(graphics, left, top);
+        drawProgress(graphics, left, top, partialTick);
     }
 
-    @Override
-    protected void containerTick() {
-        super.containerTick();
-        if (this.menu.hasNuggets()) {
-            this.animationTick++;
-        } else {
-            this.animationTick = 0;
+    /**
+     * Fills the painted trough with the furnace's real progress for the coin being
+     * smelted. It only shows while the furnace is working, and the partial tick makes
+     * the fill glide instead of stepping once per game tick.
+     */
+    private void drawProgress(GuiGraphicsExtractor graphics, int left, int top, float partialTick) {
+        if (!this.menu.isWorking()) {
+            return;
         }
-    }
-
-    /** The art supplies the furnace; only the orange fill changes while it processes nuggets. */
-    private void drawProgress(GuiGraphicsExtractor graphics, int left, int top) {
-        int progress = this.menu.hasNuggets() ? 10 + (this.animationTick % 54) : 0;
-        if (progress > 0) {
-            graphics.fill(left + 211, top + 158, left + 211 + progress, top + 163, 0xFFFFA32B);
+        float fraction = Math.min(1.0F, (this.menu.progressTicks() + partialTick) / MintHouseBlockEntity.FURNACE_TICKS_PER_COIN);
+        int width = Math.round(TROUGH_WIDTH * fraction);
+        if (width <= 0) {
+            return;
         }
+        int x = left + TROUGH_X;
+        int y = top + TROUGH_Y;
+        graphics.fill(x, y, x + width, y + TROUGH_HEIGHT, 0xFFFFA32B);
+        graphics.fill(x, y, x + width, y + 1, 0xFFFFD27A);
+        graphics.fill(x, y + TROUGH_HEIGHT - 1, x + width, y + TROUGH_HEIGHT, 0xFFD9741A);
     }
 
     /**

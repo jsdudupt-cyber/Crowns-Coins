@@ -52,6 +52,8 @@ public final class CrownsCoins {
         "mint_house",
         MintHouseBlock::new,
         () -> BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(3.5F)
+            // Only the furnace half is ever lit, and only while it is smelting.
+            .lightLevel(state -> state.getValue(MintHouseBlock.LIT) ? 13 : 0)
     );
     /** Public station for exchanging and melting already-minted currency. */
     public static final DeferredBlock<CurrencyExchangeBlock> CURRENCY_EXCHANGE = BLOCKS.registerBlock(

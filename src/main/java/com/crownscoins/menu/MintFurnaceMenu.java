@@ -10,7 +10,9 @@ import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -47,7 +49,10 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
      */
     private static final int PLAYER_MAIN_END = PLAYER_SLOT_START + 18;
     private static final int PLAYER_SLOT_END = PLAYER_MAIN_END + 9;
+    private static final int PROGRESS_DATA_COUNT = 2;
     private final Container furnaceInput;
+    /** Smelting ticks and a working flag, synchronized from the block entity to the open screen. */
+    private final ContainerData progress;
 
     public MintFurnaceMenu(int containerId, Inventory inventory, ServerLevel level, BlockPos mintHousePos) {
         this(CrownsCoins.MINT_FURNACE_MENU.get(), containerId, inventory, level.dimension(), mintHousePos);
@@ -81,6 +86,10 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
             this.addSlot(new ReadOnlyCoinSlot(coinStorage, slot, x, y));
         }
         addFurnaceInventorySlots(inventory);
+        this.progress = inventory.player.level().isClientSide()
+            ? new SimpleContainerData(PROGRESS_DATA_COUNT)
+            : serverProgressData(inventory, mintHousePos);
+        this.addDataSlots(this.progress);
     }
 
     @Override
@@ -116,9 +125,37 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
         return stack.is(Items.COPPER_NUGGET) || stack.is(Items.IRON_NUGGET) || stack.is(Items.GOLD_NUGGET);
     }
 
-    /** Used only to animate the furnace UI while it has a valid stack to process. */
-    public boolean hasNuggets() {
-        return isNugget(this.furnaceInput.getItem(INPUT_SLOT));
+    /** Ticks smelted so far for the current coin (0 to {@link MintHouseBlockEntity#FURNACE_TICKS_PER_COIN}). */
+    public int progressTicks() {
+        return this.progress.get(0);
+    }
+
+    /** True while the furnace is really smelting; the progress bar and glow follow this. */
+    public boolean isWorking() {
+        return this.progress.get(1) != 0;
+    }
+
+    /** Server side: reads the live block entity every time, never a stale reference. */
+    private static ContainerData serverProgressData(Inventory inventory, BlockPos mintHousePos) {
+        return new ContainerData() {
+            @Override
+            public int get(int index) {
+                if (!(inventory.player.level().getBlockEntity(mintHousePos) instanceof MintHouseBlockEntity mintHouse)) {
+                    return 0;
+                }
+                return index == 0 ? mintHouse.furnaceProgress() : mintHouse.isFurnaceWorking() ? 1 : 0;
+            }
+
+            @Override
+            public void set(int index, int value) {
+                // Display-only: the block entity owns this state.
+            }
+
+            @Override
+            public int getCount() {
+                return PROGRESS_DATA_COUNT;
+            }
+        };
     }
 
     /**

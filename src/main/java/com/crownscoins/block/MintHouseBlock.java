@@ -28,6 +28,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.block.state.properties.BedPart;
 import net.minecraft.world.level.Level;
@@ -42,10 +43,12 @@ public final class MintHouseBlock extends BaseEntityBlock {
     public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
     /** The functional controller is stored in the FOOT half; both physical halves open it. */
     public static final EnumProperty<BedPart> PART = BlockStateProperties.BED_PART;
+    /** True on the furnace half while it is smelting: swaps in the glowing model and emits light. */
+    public static final BooleanProperty LIT = BlockStateProperties.LIT;
 
     public MintHouseBlock(BlockBehaviour.Properties properties) {
         super(properties);
-        this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(PART, BedPart.FOOT));
+        this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(PART, BedPart.FOOT).setValue(LIT, false));
     }
 
     @Override protected MapCodec<? extends BaseEntityBlock> codec() { return CODEC; }
@@ -117,7 +120,7 @@ public final class MintHouseBlock extends BaseEntityBlock {
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING, PART);
+        builder.add(FACING, PART, LIT);
     }
 
     @Override

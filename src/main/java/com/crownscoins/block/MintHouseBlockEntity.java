@@ -22,8 +22,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BedPart;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import org.jspecify.annotations.Nullable;
@@ -45,7 +47,7 @@ public final class MintHouseBlockEntity extends BlockEntity implements WorldlyCo
     public static final int FURNACE_SLOT = COIN_STORAGE_SLOTS;
     private static final int[] COIN_SLOTS = IntStream.range(0, COIN_STORAGE_SLOTS).toArray();
     private static final int[] FURNACE_SLOTS = {FURNACE_SLOT};
-    private static final int FURNACE_TICKS_PER_COIN = 20;
+    public static final int FURNACE_TICKS_PER_COIN = 20;
 
     private UUID kingdomId;
     private final NonNullList<ItemStack> coinStorage = NonNullList.withSize(COIN_STORAGE_SLOTS, ItemStack.EMPTY);
@@ -58,6 +60,9 @@ public final class MintHouseBlockEntity extends BlockEntity implements WorldlyCo
         }
     };
     private int furnaceTicks;
+    /** Runtime-only: whether the furnace is smelting, and whether the lit block state was checked since loading. */
+    private boolean furnaceWorking;
+    private boolean litSynced;
 
     public MintHouseBlockEntity(BlockPos pos, BlockState state) { super(CrownsCoins.MINT_HOUSE_ENTITY.get(), pos, state); }
     public Optional<UUID> kingdomId() { return Optional.ofNullable(kingdomId); }
@@ -103,17 +108,21 @@ public final class MintHouseBlockEntity extends BlockEntity implements WorldlyCo
         Optional<Kingdom> kingdom = kingdomId().flatMap(id -> KingdomSavedData.get(level).find(id));
         if (metal.isEmpty() || kingdom.isEmpty() || nuggets.getCount() < MintHouseMenu.nuggetsPerCoin(metal.get())) {
             furnaceTicks = 0;
+            setWorking(level, false);
             return;
         }
 
         furnaceTicks++;
         if (furnaceTicks < FURNACE_TICKS_PER_COIN) {
+            setWorking(level, true);
             return;
         }
 
         ItemStack baseCoin = MintHouseMenu.createBaseCoin(kingdom.get(), metal.get());
         if (!canStoreCoins(baseCoin)) {
+            // The chest is full: the fire goes out until there is room again.
             furnaceTicks = FURNACE_TICKS_PER_COIN;
+            setWorking(level, false);
             return;
         }
 
@@ -126,6 +135,36 @@ public final class MintHouseBlockEntity extends BlockEntity implements WorldlyCo
         storeCoins(baseCoin);
         furnaceTicks = 0;
         setChanged();
+    }
+
+    /**
+     * Remembers whether the furnace is smelting and lights or darkens the furnace half
+     * of the block to match. The block state is re-checked once after loading, so a
+     * world saved while lit cannot stay lit forever.
+     */
+    private void setWorking(ServerLevel level, boolean working) {
+        if (litSynced && working == furnaceWorking) {
+            return;
+        }
+        litSynced = true;
+        furnaceWorking = working;
+        BlockPos headPos = this.worldPosition.relative(this.getBlockState().getValue(MintHouseBlock.FACING).getClockWise());
+        BlockState head = level.getBlockState(headPos);
+        if (head.is(CrownsCoins.MINT_HOUSE.get())
+            && head.getValue(MintHouseBlock.PART) == BedPart.HEAD
+            && head.getValue(MintHouseBlock.LIT) != working) {
+            level.setBlock(headPos, head.setValue(MintHouseBlock.LIT, working), Block.UPDATE_ALL);
+        }
+    }
+
+    /** Ticks smelted so far for the current coin, 0 to {@link #FURNACE_TICKS_PER_COIN}; synchronized to the furnace screen. */
+    public int furnaceProgress() {
+        return furnaceTicks;
+    }
+
+    /** True while nuggets are actually being smelted; synchronized to the furnace screen. */
+    public boolean isFurnaceWorking() {
+        return furnaceWorking;
     }
 
     private static Optional<Kingdom.Metal> metalForNugget(ItemStack stack) {
