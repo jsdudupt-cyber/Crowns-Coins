@@ -172,6 +172,8 @@
   "crest.crownscoins.stag": "Cervo",
   "crest.crownscoins.ship": "Navio",
   "menu.crownscoins.mint_furnace": "Fornalha de Moedas",
+  "gui.crownscoins.quantity_all": "Tudo",
+  "gui.crownscoins.base_and_amount": "Base: %s  |  Cunhar: %s",
   "gui.crownscoins.members_title": "MEMBROS DO REINO",
   "gui.crownscoins.member_founder": "%s (fundador)",
   "gui.crownscoins.player_name": "Nome do jogador",

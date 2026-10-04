@@ -1,19 +1,22 @@
 package com.crownscoins.block;
 
 import com.crownscoins.CrownsCoins;
+import com.crownscoins.coin.CoinData;
 import com.crownscoins.kingdom.Kingdom;
 import com.crownscoins.kingdom.KingdomSavedData;
 import com.crownscoins.menu.MintHouseMenu;
 import com.mojang.serialization.Codec;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.IntStream;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
-import net.minecraft.world.Containers;
 import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -23,6 +26,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The exact Mint House binding and its integrated coin chest.
@@ -30,11 +34,17 @@ import net.minecraft.world.level.storage.ValueOutput;
  * <p>The chest deliberately lives on the block entity instead of in a menu-local
  * {@code SimpleContainer}: it is saved with the world, shared by every player
  * opening this exact table, and dropped by Minecraft's normal block-entity
- * removal path ({@link #preRemoveSideEffects}) when the table is broken.</p>
+ * removal path ({@link #preRemoveSideEffects}) when the table is broken. The
+ * furnace input is exposed as one extra slot, so it is dropped the same way
+ * and hoppers can feed it nuggets.</p>
  */
-public final class MintHouseBlockEntity extends BlockEntity implements Container {
+public final class MintHouseBlockEntity extends BlockEntity implements WorldlyContainer {
     /** One simple-chest page, reserved for the three Crowns & Coins denominations. */
     public static final int COIN_STORAGE_SLOTS = 27;
+    /** Container slot that exposes the furnace nugget input (after the coin chest). */
+    public static final int FURNACE_SLOT = COIN_STORAGE_SLOTS;
+    private static final int[] COIN_SLOTS = IntStream.range(0, COIN_STORAGE_SLOTS).toArray();
+    private static final int[] FURNACE_SLOTS = {FURNACE_SLOT};
     private static final int FURNACE_TICKS_PER_COIN = 20;
 
     private UUID kingdomId;
@@ -53,18 +63,6 @@ public final class MintHouseBlockEntity extends BlockEntity implements Container
     public Optional<UUID> kingdomId() { return Optional.ofNullable(kingdomId); }
     public void bind(UUID id) { kingdomId = id; setChanged(); }
     public Container furnaceInput() { return furnaceInput; }
-
-    /**
-     * Minecraft already drops this block entity's coin chest because it is a
-     * {@link Container}. The separate furnace input socket needs the same treatment.
-     */
-    @Override
-    public void preRemoveSideEffects(BlockPos pos, BlockState state) {
-        super.preRemoveSideEffects(pos, state);
-        if (this.level != null) {
-            Containers.dropContents(this.level, pos, furnaceInput);
-        }
-    }
 
     /** Returns true for the three physical coin items accepted by the integrated chest. */
     public static boolean acceptsCoin(ItemStack stack) {
@@ -152,9 +150,10 @@ public final class MintHouseBlockEntity extends BlockEntity implements Container
         return remaining <= 0;
     }
 
+    /** The coin chest plus the furnace input socket, which hoppers see as one extra slot. */
     @Override
     public int getContainerSize() {
-        return COIN_STORAGE_SLOTS;
+        return COIN_STORAGE_SLOTS + 1;
     }
 
     @Override
@@ -164,16 +163,22 @@ public final class MintHouseBlockEntity extends BlockEntity implements Container
                 return false;
             }
         }
-        return true;
+        return furnaceInput.getItem(0).isEmpty();
     }
 
     @Override
     public ItemStack getItem(int slot) {
+        if (slot == FURNACE_SLOT) {
+            return furnaceInput.getItem(0);
+        }
         return slot >= 0 && slot < COIN_STORAGE_SLOTS ? this.coinStorage.get(slot) : ItemStack.EMPTY;
     }
 
     @Override
     public ItemStack removeItem(int slot, int amount) {
+        if (slot == FURNACE_SLOT) {
+            return furnaceInput.removeItem(0, amount);
+        }
         ItemStack result = ContainerHelper.removeItem(this.coinStorage, slot, amount);
         if (!result.isEmpty()) {
             this.setChanged();
@@ -183,6 +188,9 @@ public final class MintHouseBlockEntity extends BlockEntity implements Container
 
     @Override
     public ItemStack removeItemNoUpdate(int slot) {
+        if (slot == FURNACE_SLOT) {
+            return furnaceInput.removeItemNoUpdate(0);
+        }
         ItemStack result = ContainerHelper.takeItem(this.coinStorage, slot);
         if (!result.isEmpty()) {
             this.setChanged();
@@ -192,12 +200,54 @@ public final class MintHouseBlockEntity extends BlockEntity implements Container
 
     @Override
     public void setItem(int slot, ItemStack stack) {
-        if (slot < 0 || slot >= COIN_STORAGE_SLOTS || (!stack.isEmpty() && !acceptsCoin(stack))) {
+        if (!canPlaceItem(slot, stack) && !stack.isEmpty()) {
+            return;
+        }
+        if (slot == FURNACE_SLOT) {
+            furnaceInput.setItem(0, stack);
+            stack.limitSize(this.getMaxStackSize(stack));
+            return;
+        }
+        if (slot < 0 || slot >= COIN_STORAGE_SLOTS) {
             return;
         }
         this.coinStorage.set(slot, stack);
         stack.limitSize(this.getMaxStackSize(stack));
         this.setChanged();
+    }
+
+    /** Hoppers ask this before inserting, so unsupported items are refused instead of lost. */
+    @Override
+    public boolean canPlaceItem(int slot, ItemStack stack) {
+        if (slot == FURNACE_SLOT) {
+            return metalForNugget(stack).isPresent();
+        }
+        return slot >= 0 && slot < COIN_STORAGE_SLOTS && acceptsCoin(stack);
+    }
+
+    /** From below, hoppers see the coin chest; from any other side they see the nugget input. */
+    @Override
+    public int[] getSlotsForFace(Direction side) {
+        return side == Direction.DOWN ? COIN_SLOTS : FURNACE_SLOTS;
+    }
+
+    /** Nuggets may be fed in from above or the sides, never into the coin chest. */
+    @Override
+    public boolean canPlaceItemThroughFace(int slot, ItemStack stack, @Nullable Direction direction) {
+        return slot == FURNACE_SLOT && direction != Direction.DOWN && metalForNugget(stack).isPresent();
+    }
+
+    /**
+     * Only finished (designed) coins can be piped out from below. Plain base
+     * coins stay in the chest because the press needs them.
+     */
+    @Override
+    public boolean canTakeItemThroughFace(int slot, ItemStack stack, Direction direction) {
+        if (direction != Direction.DOWN || slot < 0 || slot >= COIN_STORAGE_SLOTS) {
+            return false;
+        }
+        CoinData data = stack.get(CrownsCoins.COIN_DATA.get());
+        return data != null && data.shapeId() != CoinData.DEFAULT_SHAPE_ID;
     }
 
     @Override
@@ -216,6 +266,7 @@ public final class MintHouseBlockEntity extends BlockEntity implements Container
         for (int slot = 0; slot < COIN_STORAGE_SLOTS; slot++) {
             this.coinStorage.set(slot, ItemStack.EMPTY);
         }
+        furnaceInput.setItem(0, ItemStack.EMPTY);
         this.setChanged();
     }
 

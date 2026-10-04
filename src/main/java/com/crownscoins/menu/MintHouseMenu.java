@@ -356,7 +356,12 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         MintRequest validated = request.get();
         // Minting stamps a design onto every matching base coin in the chest;
         // the furnace is what turns nuggets into base coins.
-        int quantity = baseCoinCountFor(validated);
+        if (payload.quantity() < 0) {
+            player.sendSystemMessage(Component.translatable("message.crownscoins.mint_rejected"));
+            return;
+        }
+        int available = baseCoinCountFor(validated);
+        int quantity = payload.quantity() == MintCoinPayload.ALL ? available : Math.min(payload.quantity(), available);
         if (quantity <= 0) {
             player.sendSystemMessage(Component.translatable("message.crownscoins.missing_nuggets"));
             return;

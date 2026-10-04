@@ -45,6 +45,12 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     /** Keep the live coin small enough that the forge animation stays legible. */
     private static final int PREVIEW_SIZE = 36;
     private static final int MINT_ANIMATION_TICKS = 20;
+    /** Amount choices of the minting panel; {@link MintCoinPayload#ALL} stamps every base coin. */
+    private static final int[] QUANTITY_CHOICES = {1, 8, 64, MintCoinPayload.ALL};
+    private static final int[] QUANTITY_BUTTON_X = {332, 363, 394, 425};
+    private static final int[] QUANTITY_BUTTON_WIDTH = {28, 28, 28, 31};
+    private static final int QUANTITY_BUTTON_Y = 252;
+    private static final int QUANTITY_BUTTON_HEIGHT = 14;
     /** Members section of the settings view: list box above one row of controls. */
     private static final int MEMBER_LIST_X = 40;
     private static final int MEMBER_LIST_Y = 228;
@@ -97,6 +103,9 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     private Kingdom.Metal detectedMetal;
     /** One-based because that is the stable ID sent to the minting payload. */
     private int selectedShape = 1;
+    /** Requested amount for one mint; {@link MintCoinPayload#ALL} until the player picks a number. */
+    private int selectedQuantity = MintCoinPayload.ALL;
+    private final List<Button> quantityButtons = new ArrayList<>();
     /** Client-only, short forge animation started after a valid mint click. */
     private int mintAnimationTicks;
     private Button confirmButton;
@@ -146,6 +155,22 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
                 .tooltip(Tooltip.create(gui("coin_shape." + shape)))
                 .build()));
             this.shapeButtons.add(new ShapeButton(shapeButton, shape));
+        }
+
+        this.quantityButtons.clear();
+        for (int index = 0; index < QUANTITY_CHOICES.length; index++) {
+            int choice = QUANTITY_CHOICES[index];
+            this.quantityButtons.add(this.addRenderableWidget(invisible(Button.builder(
+                    Component.empty(),
+                    ignored -> selectQuantity(choice)
+                )
+                .bounds(
+                    this.leftPos + QUANTITY_BUTTON_X[index],
+                    this.topPos + QUANTITY_BUTTON_Y,
+                    QUANTITY_BUTTON_WIDTH[index],
+                    QUANTITY_BUTTON_HEIGHT
+                )
+                .build())));
         }
 
         this.confirmButton = this.addRenderableWidget(invisible(Button.builder(Component.empty(), ignored -> mint())
@@ -273,6 +298,15 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         this.refreshShapeButtonVisibility();
     }
 
+    /** How many coins one click will mint: the chosen amount, never more than the chest holds. */
+    private int mintAmount(int available) {
+        return this.selectedQuantity == MintCoinPayload.ALL ? available : Math.min(this.selectedQuantity, available);
+    }
+
+    private void selectQuantity(int quantity) {
+        this.selectedQuantity = quantity;
+    }
+
     private void selectShape(int shape) {
         if (shape < 1 || shape > MintHouseLayout.SHAPE_GALLERY_BUTTON_COUNT || this.detectedMetal == null) {
             return;
@@ -284,7 +318,7 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         if (this.confirmButton == null) {
             return;
         }
-        int quantity = this.detectedMetal == null ? 0 : this.menu.mintableCoinCountFor(this.selectedMetal);
+        int quantity = this.detectedMetal == null ? 0 : mintAmount(this.menu.mintableCoinCountFor(this.selectedMetal));
         this.confirmButton.active = KingdomCrest.isSupported(this.display.crest())
             && this.detectedMetal != null
             && quantity > 0;
@@ -353,6 +387,9 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         this.refreshShapeButtonVisibility();
         if (this.confirmButton != null) {
             this.confirmButton.visible = open;
+        }
+        for (Button quantityButton : this.quantityButtons) {
+            quantityButton.visible = open;
         }
         if (this.backButton != null) {
             this.backButton.setTooltip(Tooltip.create(gui(open ? "back" : "tab_currency")));
@@ -440,7 +477,7 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
             this.status = gui("insert_nuggets");
             return;
         }
-        int quantity = this.menu.mintableCoinCountFor(this.selectedMetal);
+        int quantity = mintAmount(this.menu.mintableCoinCountFor(this.selectedMetal));
         if (quantity <= 0) {
             this.status = gui(
                 "insert_matching_nuggets",
@@ -453,7 +490,8 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
         ClientPacketDistributor.sendToServer(new MintCoinPayload(
             this.menu.containerId,
             metalId(this.selectedMetal),
-            this.currencyTabOpen ? this.selectedShape : 0
+            this.currencyTabOpen ? this.selectedShape : 0,
+            this.selectedQuantity
         ));
         this.status = gui("mint_sent", quantity);
     }
@@ -638,7 +676,16 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     }
 
     private void renderActionPanel(GuiGraphicsExtractor graphics, int left, int top) {
-        int quantity = this.detectedMetal == null ? 0 : Math.max(0, this.menu.mintableCoinCountFor(this.selectedMetal));
+        int available = this.detectedMetal == null ? 0 : Math.max(0, this.menu.mintableCoinCountFor(this.selectedMetal));
+        int quantity = mintAmount(available);
+        graphics.centeredText(this.font, gui("base_and_amount", available, quantity),
+            left + MintHouseLayout.ACTION_PANEL_X + MintHouseLayout.ACTION_PANEL_WIDTH / 2, top + 213, SUBTLE_TEXT);
+        for (int index = 0; index < QUANTITY_CHOICES.length; index++) {
+            int choice = QUANTITY_CHOICES[index];
+            Component label = choice == MintCoinPayload.ALL ? gui("quantity_all") : Component.literal(Integer.toString(choice));
+            renderActionButton(graphics, left + QUANTITY_BUTTON_X[index], top + QUANTITY_BUTTON_Y,
+                QUANTITY_BUTTON_WIDTH[index], QUANTITY_BUTTON_HEIGHT, label, true, choice == this.selectedQuantity);
+        }
         if (this.detectedMetal != null) {
             graphics.blit(RenderPipelines.GUI_TEXTURED, coinShapeTexture(this.selectedMetal, 1), left + 342, top + 226,
                 0.0F, 0.0F, 20, 20, 16, 16, 16, 16);

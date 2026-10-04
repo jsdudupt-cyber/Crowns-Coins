@@ -172,6 +172,8 @@
   "crest.crownscoins.stag": "Stag",
   "crest.crownscoins.ship": "Ship",
   "menu.crownscoins.mint_furnace": "Coin Furnace",
+  "gui.crownscoins.quantity_all": "All",
+  "gui.crownscoins.base_and_amount": "Base coins: %s  |  Mint: %s",
   "gui.crownscoins.members_title": "KINGDOM MEMBERS",
   "gui.crownscoins.member_founder": "%s (founder)",
   "gui.crownscoins.player_name": "Player name",
