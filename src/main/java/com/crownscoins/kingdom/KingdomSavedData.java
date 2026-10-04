@@ -57,10 +57,6 @@ public final class KingdomSavedData extends SavedData {
                 existing = existing.withCrest(normalizedCrest);
                 migratedLegacyData = true;
             }
-            if (!existing.hasStandardEconomy()) {
-                existing = existing.withStandardEconomy();
-                migratedLegacyData = true;
-            }
             try {
                 indexExisting(existing);
             } catch (IllegalArgumentException conflict) {
@@ -113,15 +109,7 @@ public final class KingdomSavedData extends SavedData {
      * @throws IllegalStateException if the founder already belongs to a kingdom
      * @throws IllegalArgumentException if the name is in use or a kingdom field is invalid
      */
-    public Kingdom createKingdom(
-        UUID founder,
-        String name,
-        String currencyName,
-        Symbol crest,
-        int ironValue,
-        int copperValue,
-        int goldValue
-    ) {
+    public Kingdom createKingdom(UUID founder, String name, String currencyName, Symbol crest) {
         Objects.requireNonNull(founder, "founder");
         if (hasKingdom(founder)) {
             throw new IllegalStateException("A player may belong to only one kingdom");
@@ -132,7 +120,7 @@ public final class KingdomSavedData extends SavedData {
             throw new IllegalArgumentException("A kingdom with that name already exists");
         }
 
-        Kingdom kingdom = Kingdom.create(founder, name, currencyName, crest, ironValue, copperValue, goldValue);
+        Kingdom kingdom = Kingdom.create(founder, name, currencyName, crest);
         indexExisting(kingdom);
         setDirty();
         return kingdom;
@@ -193,6 +181,44 @@ public final class KingdomSavedData extends SavedData {
             kingdomByCanonicalName.remove(currentCanonicalName, kingdomId);
             kingdomByCanonicalName.put(replacementCanonicalName, kingdomId);
         }
+        setDirty();
+        return Optional.of(replacement);
+    }
+
+    /**
+     * Permanently removes a kingdom and frees every member to join or found another.
+     * Mint Houses that were bound to it stay in the world and are unbound the next
+     * time someone uses them; coins already minted keep their stored data.
+     */
+    public boolean deleteKingdom(UUID kingdomId) {
+        Kingdom removed = kingdomsById.remove(Objects.requireNonNull(kingdomId, "kingdomId"));
+        if (removed == null) {
+            return false;
+        }
+        kingdomByCanonicalName.remove(Kingdom.canonicalName(removed.name()), kingdomId);
+        for (UUID member : removed.members()) {
+            kingdomByMember.remove(member, kingdomId);
+        }
+        setDirty();
+        return true;
+    }
+
+    /**
+     * Makes an existing member the founder, who alone may rename the kingdom and manage
+     * members. The previous founder stays a regular member. Returns empty when the target
+     * is not a member of that kingdom.
+     */
+    public Optional<Kingdom> transferFounder(UUID kingdomId, UUID newFounderId) {
+        Kingdom current = kingdomsById.get(Objects.requireNonNull(kingdomId, "kingdomId"));
+        Objects.requireNonNull(newFounderId, "newFounderId");
+        if (current == null || !current.isMember(newFounderId)) {
+            return Optional.empty();
+        }
+        if (current.isFounder(newFounderId)) {
+            return Optional.of(current);
+        }
+        Kingdom replacement = current.withFounder(newFounderId);
+        kingdomsById.put(kingdomId, replacement);
         setDirty();
         return Optional.of(replacement);
     }

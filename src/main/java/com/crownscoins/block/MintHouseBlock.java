@@ -10,6 +10,9 @@ import com.crownscoins.menu.MintHouseMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -28,6 +31,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.block.state.properties.BedPart;
 import net.minecraft.world.level.Level;
@@ -42,10 +46,12 @@ public final class MintHouseBlock extends BaseEntityBlock {
     public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
     /** The functional controller is stored in the FOOT half; both physical halves open it. */
     public static final EnumProperty<BedPart> PART = BlockStateProperties.BED_PART;
+    /** True on the furnace half while it is smelting: swaps in the glowing model and emits light. */
+    public static final BooleanProperty LIT = BlockStateProperties.LIT;
 
     public MintHouseBlock(BlockBehaviour.Properties properties) {
         super(properties);
-        this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(PART, BedPart.FOOT));
+        this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(PART, BedPart.FOOT).setValue(LIT, false));
     }
 
     @Override protected MapCodec<? extends BaseEntityBlock> codec() { return CODEC; }
@@ -62,6 +68,30 @@ public final class MintHouseBlock extends BaseEntityBlock {
         return state.getValue(PART) == BedPart.FOOT && !level.isClientSide()
             ? createTickerHelper(blockEntityType, CrownsCoins.MINT_HOUSE_ENTITY.get(), MintHouseBlockEntity::serverTick)
             : null;
+    }
+
+    /**
+     * Client-side ambience while the furnace half is smelting: crackling, and smoke and
+     * sparks coming out of its mouth. The mouth is the front face, the way FACING points.
+     */
+    @Override
+    public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
+        if (!state.getValue(LIT) || state.getValue(PART) != BedPart.HEAD) {
+            return;
+        }
+        double x = pos.getX() + 0.5;
+        double y = pos.getY();
+        double z = pos.getZ() + 0.5;
+        if (random.nextDouble() < 0.1) {
+            level.playLocalSound(x, y, z, SoundEvents.FURNACE_FIRE_CRACKLE, SoundSource.BLOCKS, 1.0F, 1.0F, false);
+        }
+        Direction front = state.getValue(FACING);
+        double sideways = random.nextDouble() * 0.6 - 0.3;
+        double offsetX = front.getAxis() == Direction.Axis.X ? front.getStepX() * 0.52 : sideways;
+        double offsetZ = front.getAxis() == Direction.Axis.Z ? front.getStepZ() * 0.52 : sideways;
+        double offsetY = 0.1 + random.nextDouble() * 0.3;
+        level.addParticle(ParticleTypes.SMOKE, x + offsetX, y + offsetY, z + offsetZ, 0.0, 0.0, 0.0);
+        level.addParticle(ParticleTypes.FLAME, x + offsetX, y + offsetY, z + offsetZ, 0.0, 0.0, 0.0);
     }
 
     /** Faces its decorated press panel toward the player who places it. */
@@ -117,7 +147,7 @@ public final class MintHouseBlock extends BaseEntityBlock {
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING, PART);
+        builder.add(FACING, PART, LIT);
     }
 
     @Override
@@ -147,6 +177,10 @@ public final class MintHouseBlock extends BaseEntityBlock {
 
         // The right-hand press owns the kingdom association, currency name and designs.
         var kingdoms = KingdomSavedData.get(serverLevel);
+        // A kingdom an administrator deleted leaves its Mint Houses pointing at nothing: free them.
+        if (mintHouse.kingdomId().isPresent() && kingdoms.find(mintHouse.kingdomId().get()).isEmpty()) {
+            mintHouse.bind(null);
+        }
         Kingdom boundKingdom;
         if (mintHouse.kingdomId().isEmpty()) {
             var owned = kingdoms.findByMember(serverPlayer.getUUID());
@@ -176,13 +210,7 @@ public final class MintHouseBlock extends BaseEntityBlock {
         }
         serverPlayer.openMenu(
             new SimpleMenuProvider(
-                (id, inventory, ignored) -> new MintHouseMenu(
-                    id,
-                    inventory,
-                    serverLevel,
-                    mintPos,
-                    true
-                ),
+                (id, inventory, ignored) -> new MintHouseMenu(id, inventory, serverLevel, mintPos),
                 Component.translatable("menu.crownscoins.mint")
             ),
             buffer -> {
@@ -191,10 +219,7 @@ public final class MintHouseBlock extends BaseEntityBlock {
                 buffer.writeUtf(boundKingdom.currencyName(), Kingdom.MAX_CURRENCY_NAME_LENGTH);
                 buffer.writeVarInt(boundKingdom.crest().id());
                 buffer.writeBoolean(boundKingdom.isFounder(serverPlayer.getUUID()));
-                buffer.writeVarInt(boundKingdom.ironValue());
-                buffer.writeVarInt(boundKingdom.copperValue());
-                buffer.writeVarInt(boundKingdom.goldValue());
-                buffer.writeBoolean(true);
+                MintHouseMenu.writeMemberNames(buffer, MintHouseMenu.memberNames(serverLevel, boundKingdom));
             }
         );
         return InteractionResult.SUCCESS_SERVER;

@@ -1,5 +1,6 @@
 package com.crownscoins.network;
 
+import com.crownscoins.menu.MintHouseMenu;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -7,7 +8,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 /** Common, dedicated-server-safe registration and dispatch for Crowns & Coins payloads. */
 public final class NetworkHandler {
-    public static final String NETWORK_VERSION = "4";
+    public static final String NETWORK_VERSION = "9";
 
     private NetworkHandler() {}
 
@@ -22,6 +23,37 @@ public final class NetworkHandler {
         registrar.playToServer(MintCoinPayload.TYPE, MintCoinPayload.STREAM_CODEC, NetworkHandler::handleMintCoin);
         registrar.playToServer(UpdateCurrencyNamePayload.TYPE, UpdateCurrencyNamePayload.STREAM_CODEC, NetworkHandler::handleUpdateCurrencyName);
         registrar.playToServer(UpdateKingdomNamePayload.TYPE, UpdateKingdomNamePayload.STREAM_CODEC, NetworkHandler::handleUpdateKingdomName);
+        registrar.playToServer(UpdateMembersPayload.TYPE, UpdateMembersPayload.STREAM_CODEC, NetworkHandler::handleUpdateMembers);
+        registrar.playToClient(KingdomInfoPayload.TYPE, KingdomInfoPayload.STREAM_CODEC, NetworkHandler::handleKingdomInfo);
+        registrar.playToClient(KingdomNamesPayload.TYPE, KingdomNamesPayload.STREAM_CODEC, NetworkHandler::handleKingdomNames);
+    }
+
+    /** Runs on the client: replaces the cached current names used by coin titles and tooltips. */
+    private static void handleKingdomNames(KingdomNamesPayload payload, IPayloadContext context) {
+        com.crownscoins.coin.KingdomNames.replaceAll(payload.entries());
+    }
+
+    /** Runs on the client: refreshes the names shown by the matching open Mint House menu. */
+    private static void handleKingdomInfo(KingdomInfoPayload payload, IPayloadContext context) {
+        if (context.player().containerMenu instanceof MintHouseMenu menu
+                && menu.containerId == payload.containerId()) {
+            menu.applyKingdomInfo(payload.kingdomName(), payload.currencyName(), payload.memberNames());
+        }
+    }
+
+    private static void handleUpdateMembers(UpdateMembersPayload payload, IPayloadContext context) {
+        if (!(context.player() instanceof ServerPlayer player)) {
+            return;
+        }
+        if (!(player.containerMenu instanceof MemberRequestHandler menu)
+                || player.containerMenu.containerId != payload.containerId()) {
+            return;
+        }
+        if (!menu.isMemberRequestValid(player)) {
+            player.closeContainer();
+            return;
+        }
+        menu.handleMemberRequest(player, payload);
     }
 
     private static void handleCreateKingdom(CreateKingdomPayload payload, IPayloadContext context) {
@@ -67,6 +99,7 @@ public final class NetworkHandler {
             return;
         }
         menu.handleCurrencyNameRequest(player, payload);
+        KingdomSync.sendToAll(player.level().getServer());
     }
 
     private static void handleUpdateKingdomName(UpdateKingdomNamePayload payload, IPayloadContext context) {
@@ -82,6 +115,7 @@ public final class NetworkHandler {
             return;
         }
         menu.handleKingdomNameRequest(player, payload);
+        KingdomSync.sendToAll(player.level().getServer());
     }
 
     /** Implemented only by the live server-side kingdom-creation menu. */
@@ -103,6 +137,13 @@ public final class NetworkHandler {
         boolean isCurrencyNameRequestValid(ServerPlayer player);
 
         void handleCurrencyNameRequest(ServerPlayer player, UpdateCurrencyNamePayload payload);
+    }
+
+    /** Implemented only by the live Mint House menu opened by a kingdom founder. */
+    public interface MemberRequestHandler {
+        boolean isMemberRequestValid(ServerPlayer player);
+
+        void handleMemberRequest(ServerPlayer player, UpdateMembersPayload payload);
     }
 
     /** Implemented only by the live Mint House menu opened by a kingdom founder. */

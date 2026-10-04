@@ -3,6 +3,8 @@ package com.crownscoins.client;
 import com.crownscoins.CrownsCoins;
 import com.crownscoins.menu.MintFurnaceMenu;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
@@ -20,12 +22,72 @@ public final class MintFurnaceScreen extends AbstractContainerScreen<MintFurnace
     private static final int SLOT_BORDER = 0xFF151617;
     private static final int SLOT_EDGE = 0xFF8F8F8A;
     private static final int SLOT_FILL = 0xFF2B2D2E;
-    private int animationTick;
+    /** Inner area of the painted progress trough (measured from the texture): 82 x 5 px, centred in its 7 px well. */
+    private static final int TROUGH_X = 200;
+    private static final int TROUGH_Y = 156;
+    private static final int TROUGH_WIDTH = 82;
+    private static final int TROUGH_HEIGHT = 5;
+    /** The two page arrows sit in the left margin of the painted arca panel, beside the 3x3 grid. */
+    private static final int PAGE_BUTTON_X = 373;
+    private static final int PAGE_UP_Y = 100;
+    private static final int PAGE_DOWN_Y = 143;
+    private static final int PAGE_BUTTON_SIZE = 13;
+    /** The painted arca panel, for mouse-wheel scrolling over it. */
+    private static final int ARCA_PANEL_X = 371;
+    private static final int ARCA_PANEL_Y = 92;
+    private static final int ARCA_PANEL_WIDTH = 86;
+    private static final int ARCA_PANEL_HEIGHT = 76;
+    private Button pageUpButton;
+    private Button pageDownButton;
 
     public MintFurnaceScreen(MintFurnaceMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title, WIDTH, HEIGHT);
         this.titleLabelX = -10_000;
         this.inventoryLabelX = -10_000;
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+        this.pageUpButton = this.addRenderableWidget(pageButton(PAGE_UP_Y, -1, Component.translatable("gui.crownscoins.chest_page_previous")));
+        this.pageDownButton = this.addRenderableWidget(pageButton(PAGE_DOWN_Y, 1, Component.translatable("gui.crownscoins.chest_page_next")));
+        this.refreshPageButtons();
+    }
+
+    /** An invisible clickable area; its face is drawn by {@link #renderPageControls}. */
+    private Button pageButton(int y, int step, Component tooltip) {
+        Button button = Button.builder(Component.empty(), ignored -> changePage(step))
+            .bounds(this.leftPos + PAGE_BUTTON_X, this.topPos + y, PAGE_BUTTON_SIZE, PAGE_BUTTON_SIZE)
+            .tooltip(Tooltip.create(tooltip))
+            .build();
+        button.setAlpha(0.0F);
+        return button;
+    }
+
+    private void changePage(int step) {
+        this.menu.setPage(this.menu.page() + step);
+        this.refreshPageButtons();
+    }
+
+    private void refreshPageButtons() {
+        if (this.pageUpButton != null) {
+            this.pageUpButton.active = this.menu.page() > 0;
+        }
+        if (this.pageDownButton != null) {
+            this.pageDownButton.active = this.menu.page() < MintFurnaceMenu.CHEST_PAGE_COUNT - 1;
+        }
+    }
+
+    /** Scrolling the mouse wheel over the arca panel turns its pages. */
+    @Override
+    public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
+        boolean overArca = x >= this.leftPos + ARCA_PANEL_X && x < this.leftPos + ARCA_PANEL_X + ARCA_PANEL_WIDTH
+            && y >= this.topPos + ARCA_PANEL_Y && y < this.topPos + ARCA_PANEL_Y + ARCA_PANEL_HEIGHT;
+        if (overArca && scrollY != 0.0) {
+            changePage(scrollY > 0.0 ? -1 : 1);
+            return true;
+        }
+        return super.mouseScrolled(x, y, scrollX, scrollY);
     }
 
     @Override
@@ -47,26 +109,55 @@ public final class MintFurnaceScreen extends AbstractContainerScreen<MintFurnace
             HEIGHT
         );
         renderLiveSlotFrames(graphics, left, top);
+        renderPageControls(graphics, left, top);
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
-        drawProgress(graphics, left, top);
+        drawProgress(graphics, left, top, partialTick);
     }
 
-    @Override
-    protected void containerTick() {
-        super.containerTick();
-        if (this.menu.hasNuggets()) {
-            this.animationTick++;
-        } else {
-            this.animationTick = 0;
+    /** Draws the two arrow buttons (dimmed when there is no page that way) and the "page/pages" label. */
+    private void renderPageControls(GuiGraphicsExtractor graphics, int left, int top) {
+        renderPageArrow(graphics, left + PAGE_BUTTON_X, top + PAGE_UP_Y, true, this.menu.page() > 0);
+        renderPageArrow(graphics, left + PAGE_BUTTON_X, top + PAGE_DOWN_Y, false, this.menu.page() < MintFurnaceMenu.CHEST_PAGE_COUNT - 1);
+        Component label = Component.literal((this.menu.page() + 1) + "/" + MintFurnaceMenu.CHEST_PAGE_COUNT);
+        int centerX = left + MintFurnaceMenu.CHEST_SLOT_X + MintFurnaceMenu.CHEST_SLOT_X_STEP + 8;
+        int x = centerX - this.font.width(label) / 2;
+        graphics.text(this.font, label, x + 1, top + 160, 0xFF000000);
+        graphics.text(this.font, label, x, top + 159, 0xFFFFD34F);
+    }
+
+    private void renderPageArrow(GuiGraphicsExtractor graphics, int x, int y, boolean up, boolean enabled) {
+        int size = PAGE_BUTTON_SIZE;
+        graphics.fill(x, y, x + size, y + size, 0xFF151617);
+        graphics.outline(x, y, size, size, enabled ? 0xFFB0843C : 0xFF5A544C);
+        graphics.fill(x + 1, y + 1, x + size - 1, y + size - 1, 0xFF34281C);
+        int color = enabled ? 0xFFFFD34F : 0xFF78643C;
+        // A small triangle drawn row by row: three rows tall is enough at this size.
+        for (int row = 0; row < 4; row++) {
+            int half = up ? row : 3 - row;
+            int rowY = y + 4 + row + (up ? 0 : 1);
+            graphics.fill(x + 6 - half, rowY, x + 7 + half, rowY + 1, color);
         }
     }
 
-    /** The art supplies the furnace; only the orange fill changes while it processes nuggets. */
-    private void drawProgress(GuiGraphicsExtractor graphics, int left, int top) {
-        int progress = this.menu.hasNuggets() ? 10 + (this.animationTick % 54) : 0;
-        if (progress > 0) {
-            graphics.fill(left + 211, top + 158, left + 211 + progress, top + 163, 0xFFFFA32B);
+    /**
+     * Fills the painted trough with the furnace's real progress for the coin being
+     * smelted. It only shows while the furnace is working, and the partial tick makes
+     * the fill glide instead of stepping once per game tick.
+     */
+    private void drawProgress(GuiGraphicsExtractor graphics, int left, int top, float partialTick) {
+        if (!this.menu.isWorking()) {
+            return;
         }
+        float fraction = Math.min(1.0F, (this.menu.progressTicks() + partialTick) / this.menu.progressNeeded());
+        int width = Math.round(TROUGH_WIDTH * fraction);
+        if (width <= 0) {
+            return;
+        }
+        int x = left + TROUGH_X;
+        int y = top + TROUGH_Y;
+        graphics.fill(x, y, x + width, y + TROUGH_HEIGHT, 0xFFFFA32B);
+        graphics.fill(x, y, x + width, y + 1, 0xFFFFD27A);
+        graphics.fill(x, y + TROUGH_HEIGHT - 1, x + width, y + TROUGH_HEIGHT, 0xFFD9741A);
     }
 
     /**

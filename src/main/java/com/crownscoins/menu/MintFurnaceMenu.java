@@ -10,7 +10,9 @@ import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -26,17 +28,21 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
     /** One source of truth for both the real slots and their visual guides. */
     public static final int INPUT_SLOT_X = 47;
     public static final int INPUT_SLOT_Y = 123;
-    public static final int CHEST_SLOT_X = 377;
-    public static final int CHEST_SLOT_Y = 99;
-    public static final int CHEST_SLOT_X_STEP = 28;
-    public static final int CHEST_SLOT_Y_STEP = 23;
-    public static final int PLAYER_SLOT_X = 76;
-    public static final int PLAYER_SLOT_X_STEP = 40;
-    public static final int PLAYER_ROW_ONE_Y = 237;
-    public static final int PLAYER_ROW_TWO_Y = 270;
-    public static final int PLAYER_HOTBAR_Y = 307;
+    public static final int CHEST_SLOT_X = 387;
+    public static final int CHEST_SLOT_Y = 100;
+    public static final int CHEST_SLOT_X_STEP = 20;
+    public static final int CHEST_SLOT_Y_STEP = 20;
+    public static final int PLAYER_SLOT_X = 141;
+    public static final int PLAYER_SLOT_X_STEP = 20;
+    public static final int PLAYER_ROW_ONE_Y = 240;
+    public static final int PLAYER_ROW_TWO_Y = 260;
+    public static final int PLAYER_HOTBAR_Y = 288;
     private static final int CHEST_SLOT_START = 1;
-    private static final int CHEST_SLOT_END = CHEST_SLOT_START + MintHouseBlockEntity.COIN_STORAGE_SLOTS;
+    /** All 27 chest slots are menu slots, drawn nine at a time in the same 3x3 grid, one page at a time. */
+    public static final int CHEST_PAGE_SIZE = 9;
+    public static final int CHEST_PAGE_COUNT = MintHouseBlockEntity.COIN_STORAGE_SLOTS / CHEST_PAGE_SIZE;
+    private static final int CHEST_VIEW_SLOTS = MintHouseBlockEntity.COIN_STORAGE_SLOTS;
+    private static final int CHEST_SLOT_END = CHEST_SLOT_START + CHEST_VIEW_SLOTS;
     private static final int PLAYER_SLOT_START = CHEST_SLOT_END;
     /**
      * Only the two painted backpack rows and the hotbar are quick-move targets.
@@ -45,7 +51,11 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
      */
     private static final int PLAYER_MAIN_END = PLAYER_SLOT_START + 18;
     private static final int PLAYER_SLOT_END = PLAYER_MAIN_END + 9;
+    private static final int PROGRESS_DATA_COUNT = 3;
     private final Container furnaceInput;
+    private int page;
+    /** Smelting ticks and a working flag, synchronized from the block entity to the open screen. */
+    private final ContainerData progress;
 
     public MintFurnaceMenu(int containerId, Inventory inventory, ServerLevel level, BlockPos mintHousePos) {
         this(CrownsCoins.MINT_FURNACE_MENU.get(), containerId, inventory, level.dimension(), mintHousePos);
@@ -73,12 +83,16 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
             }
         });
         Container coinStorage = coinStorageFor(inventory, mintHousePos);
-        for (int slot = 0; slot < MintHouseBlockEntity.COIN_STORAGE_SLOTS; slot++) {
-            int x = slot < 9 ? chestSlotX(slot) : -1_000;
-            int y = slot < 9 ? chestSlotY(slot) : -1_000;
-            this.addSlot(new ReadOnlyCoinSlot(coinStorage, slot, x, y));
+        for (int slot = 0; slot < CHEST_VIEW_SLOTS; slot++) {
+            int x = chestSlotX(slot % CHEST_PAGE_SIZE);
+            int y = chestSlotY(slot % CHEST_PAGE_SIZE);
+            this.addSlot(new ReadOnlyCoinSlot(coinStorage, slot, x, y, slot / CHEST_PAGE_SIZE));
         }
         addFurnaceInventorySlots(inventory);
+        this.progress = inventory.player.level().isClientSide()
+            ? new SimpleContainerData(PROGRESS_DATA_COUNT)
+            : serverProgressData(inventory, mintHousePos);
+        this.addDataSlots(this.progress);
     }
 
     @Override
@@ -114,9 +128,55 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
         return stack.is(Items.COPPER_NUGGET) || stack.is(Items.IRON_NUGGET) || stack.is(Items.GOLD_NUGGET);
     }
 
-    /** Used only to animate the furnace UI while it has a valid stack to process. */
-    public boolean hasNuggets() {
-        return isNugget(this.furnaceInput.getItem(INPUT_SLOT));
+    /** The chest page being shown (0 to {@link #CHEST_PAGE_COUNT} - 1). Purely a client-side view choice. */
+    public int page() {
+        return this.page;
+    }
+
+    public void setPage(int page) {
+        this.page = Math.max(0, Math.min(CHEST_PAGE_COUNT - 1, page));
+    }
+
+    /** Ticks the furnace needs for one coin; from the server config, so the bar fills over the real time. */
+    public int progressNeeded() {
+        return Math.max(1, this.progress.get(2));
+    }
+
+    /** Ticks smelted so far for the current coin (0 up to {@link #progressNeeded()}). */
+    public int progressTicks() {
+        return this.progress.get(0);
+    }
+
+    /** True while the furnace is really smelting; the progress bar and glow follow this. */
+    public boolean isWorking() {
+        return this.progress.get(1) != 0;
+    }
+
+    /** Server side: reads the live block entity every time, never a stale reference. */
+    private static ContainerData serverProgressData(Inventory inventory, BlockPos mintHousePos) {
+        return new ContainerData() {
+            @Override
+            public int get(int index) {
+                if (!(inventory.player.level().getBlockEntity(mintHousePos) instanceof MintHouseBlockEntity mintHouse)) {
+                    return 0;
+                }
+                return switch (index) {
+                    case 0 -> mintHouse.furnaceProgress();
+                    case 1 -> mintHouse.isFurnaceWorking() ? 1 : 0;
+                    default -> MintHouseBlockEntity.furnaceTicksPerCoin();
+                };
+            }
+
+            @Override
+            public void set(int index, int value) {
+                // Display-only: the block entity owns this state.
+            }
+
+            @Override
+            public int getCount() {
+                return PROGRESS_DATA_COUNT;
+            }
+        };
     }
 
     /**
@@ -135,10 +195,6 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
         }
         for (int column = 0; column < 9; column++) {
             this.addSlot(new Slot(inventory, column, playerSlotX(column), PLAYER_HOTBAR_Y));
-        }
-        // Hidden third row: still part of the real inventory, never a move target.
-        for (int column = 0; column < 9; column++) {
-            this.addSlot(new Slot(inventory, column + 27, -1_000, -1_000));
         }
     }
 
@@ -167,9 +223,18 @@ public final class MintFurnaceMenu extends MintHouseBoundMenu {
     }
 
     /** Furnace output belongs to the shared arca; this screen shows it without moving it. */
-    private static final class ReadOnlyCoinSlot extends Slot {
-        private ReadOnlyCoinSlot(Container container, int index, int x, int y) {
+    private final class ReadOnlyCoinSlot extends Slot {
+        private final int page;
+
+        private ReadOnlyCoinSlot(Container container, int index, int x, int y, int page) {
             super(container, index, x, y);
+            this.page = page;
+        }
+
+        /** Only the slots of the page being shown are drawn and hoverable; the rest stay stacked underneath. */
+        @Override
+        public boolean isActive() {
+            return this.page == MintFurnaceMenu.this.page;
         }
 
         @Override

@@ -1,11 +1,8 @@
 package com.crownscoins.coin;
 
-import com.crownscoins.kingdom.Symbol;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import java.util.EnumSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
@@ -19,107 +16,55 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.TooltipProvider;
 
-/** Persistent, synchronized provenance for one minted coin stack. */
+/**
+ * Persistent, synchronized provenance for one minted coin stack.
+ *
+ * <p>Coins saved by older versions also carry a crest, a style id and a symbol
+ * list. Those never affected the coin's look, so they are no longer stored:
+ * the codec simply ignores the extra fields when it reads an old coin.</p>
+ */
 public record CoinData(
     UUID kingdomId,
     String kingdomName,
     String currencyName,
-    Symbol kingdomCrest,
     Material material,
     int value,
-    int styleId,
-    int shapeId,
-    List<Symbol> symbols
+    int shapeId
 ) implements TooltipProvider {
-    /** Legacy item data can contain up to three symbols; new coins use none. */
-    public static final int MAX_SYMBOLS = 3;
-    public static final int MAX_STYLE_ID = 25;
-    /** Shape zero is reserved for coins minted before selectable shapes existed. */
+    /** Shape zero is a plain base coin; shapes one through twelve are the minted designs. */
     public static final int DEFAULT_SHAPE_ID = 0;
     public static final int MAX_SHAPE_ID = 12;
     public static final int MAX_VALUE = 1_000_000;
-    private static final Codec<List<Symbol>> SYMBOLS_CODEC = Symbol.CODEC.listOf().validate(CoinData::validateSymbols);
     private static final Codec<Integer> SHAPE_ID_CODEC = Codec.intRange(DEFAULT_SHAPE_ID, MAX_SHAPE_ID);
 
     public static final Codec<CoinData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
         UUIDUtil.CODEC.fieldOf("kingdom_id").forGetter(CoinData::kingdomId),
         Codec.STRING.fieldOf("kingdom_name").forGetter(CoinData::kingdomName),
         Codec.STRING.fieldOf("currency_name").forGetter(CoinData::currencyName),
-        Symbol.CODEC.fieldOf("kingdom_crest").forGetter(CoinData::kingdomCrest),
         Material.CODEC.fieldOf("material").forGetter(CoinData::material),
         Codec.intRange(1, MAX_VALUE).fieldOf("value").forGetter(CoinData::value),
-        Codec.intRange(1, MAX_STYLE_ID).fieldOf("style_id").forGetter(CoinData::styleId),
-        // Optional so all pre-shape item stacks deserialize as the legacy
-        // neutral form rather than failing to load a saved world.
-        SHAPE_ID_CODEC.optionalFieldOf("shape_id", DEFAULT_SHAPE_ID).forGetter(CoinData::shapeId),
-        SYMBOLS_CODEC.fieldOf("symbols").forGetter(CoinData::symbols)
+        // Optional so all pre-shape item stacks deserialize as plain base coins
+        // rather than failing to load a saved world.
+        SHAPE_ID_CODEC.optionalFieldOf("shape_id", DEFAULT_SHAPE_ID).forGetter(CoinData::shapeId)
     ).apply(instance, CoinData::new));
     public static final StreamCodec<RegistryFriendlyByteBuf, CoinData> STREAM_CODEC = ByteBufCodecs.fromCodecWithRegistries(CODEC);
-
-    /**
-     * Source-compatible constructor for coins created before selectable shapes.
-     * Persisted data likewise defaults through the optional codec field above.
-     */
-    public CoinData(
-        UUID kingdomId,
-        String kingdomName,
-        String currencyName,
-        Symbol kingdomCrest,
-        Material material,
-        int value,
-        int styleId,
-        List<Symbol> symbols
-    ) {
-        this(
-            kingdomId,
-            kingdomName,
-            currencyName,
-            kingdomCrest,
-            material,
-            value,
-            styleId,
-            DEFAULT_SHAPE_ID,
-            symbols
-        );
-    }
 
     public CoinData {
         kingdomId = Objects.requireNonNull(kingdomId, "kingdomId");
         kingdomName = validateText(kingdomName, "kingdomName", 2, 32);
         currencyName = validateText(currencyName, "currencyName", 1, 24);
-        kingdomCrest = Objects.requireNonNull(kingdomCrest, "kingdomCrest");
         material = Objects.requireNonNull(material, "material");
         if (value < 1 || value > MAX_VALUE) {
             throw new IllegalArgumentException("Coin value is out of range");
         }
-        if (styleId < 1 || styleId > MAX_STYLE_ID) {
-            throw new IllegalArgumentException("Coin style is out of range");
-        }
         if (!isValidShapeId(shapeId)) {
             throw new IllegalArgumentException("Coin shape is out of range");
-        }
-        symbols = List.copyOf(Objects.requireNonNull(symbols, "symbols"));
-        if (validateSymbols(symbols).error().isPresent()) {
-            throw new IllegalArgumentException("Coin symbols are invalid");
         }
     }
 
     /** Returns whether an untrusted request refers to a supported coin shape. */
     public static boolean isValidShapeId(int shapeId) {
         return shapeId >= DEFAULT_SHAPE_ID && shapeId <= MAX_SHAPE_ID;
-    }
-
-    private static DataResult<List<Symbol>> validateSymbols(List<Symbol> symbols) {
-        if (symbols.size() > MAX_SYMBOLS) {
-            return DataResult.error(() -> "A coin may have at most " + MAX_SYMBOLS + " symbols");
-        }
-        EnumSet<Symbol> unique = EnumSet.noneOf(Symbol.class);
-        for (Symbol symbol : symbols) {
-            if (symbol == null || !unique.add(symbol)) {
-                return DataResult.error(() -> "Coin symbols must be non-null and unique");
-            }
-        }
-        return DataResult.success(List.copyOf(symbols));
     }
 
     private static String validateText(String value, String field, int minimum, int maximum) {
@@ -140,8 +85,8 @@ public record CoinData(
 
     @Override
     public void addToTooltip(Item.TooltipContext context, java.util.function.Consumer<Component> tooltip, TooltipFlag tooltipFlag, DataComponentGetter components) {
-        tooltip.accept(Component.translatable("tooltip.crownscoins.currency", currencyName));
-        tooltip.accept(Component.translatable("tooltip.crownscoins.kingdom", kingdomName));
+        tooltip.accept(Component.translatable("tooltip.crownscoins.currency", com.crownscoins.coin.KingdomNames.currencyName(this)));
+        tooltip.accept(Component.translatable("tooltip.crownscoins.kingdom", com.crownscoins.coin.KingdomNames.kingdomName(this)));
         tooltip.accept(Component.translatable("tooltip.crownscoins.value", value));
         tooltip.accept(Component.translatable("tooltip.crownscoins.metal", materialName(material)));
         if (shapeId != DEFAULT_SHAPE_ID) {

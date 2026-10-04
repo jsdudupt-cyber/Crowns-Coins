@@ -1,7 +1,10 @@
 package com.crownscoins.client;
 
+import com.crownscoins.CrownsCoins;
 import com.crownscoins.kingdom.Kingdom;
 import com.crownscoins.kingdom.KingdomCrest;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.resources.Identifier;
 import com.crownscoins.menu.KingdomCreationMenu;
 import com.crownscoins.network.CreateKingdomPayload;
 import net.minecraft.client.input.KeyEvent;
@@ -20,6 +23,10 @@ import net.neoforged.neoforge.client.network.ClientPacketDistributor;
  * independently validates and persists all kingdom data.</p>
  */
 public final class KingdomCreationScreen extends AbstractContainerScreen<KingdomCreationMenu> {
+    private static final Identifier BACKGROUND = Identifier.fromNamespaceAndPath(
+        CrownsCoins.MOD_ID,
+        "textures/gui/kingdom_creation_bg.png"
+    );
     private static final int FIELD_WIDTH = 220;
     private static final int FIELD_HEIGHT = 20;
     private static final int SCREEN_HEIGHT = 116;
@@ -80,19 +87,13 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
 
         KingdomDraft draft = new KingdomDraft(
             this.kingdomName.getValue().strip(),
-            defaultCurrencyName(this.kingdomName.getValue()),
-            Kingdom.IRON_COIN_VALUE,
-            Kingdom.COPPER_COIN_VALUE,
-            Kingdom.GOLD_COIN_VALUE
+            defaultCurrencyName(this.kingdomName.getValue())
         );
         ClientPacketDistributor.sendToServer(new CreateKingdomPayload(
             this.menu.containerId,
             draft.kingdomName(),
             draft.currencyName(),
-            KingdomCrest.ROYAL_CROWN.id(),
-            draft.ironValue(),
-            draft.copperValue(),
-            draft.goldValue()
+            KingdomCrest.ROYAL_CROWN.id()
         ));
         this.createButton.active = false;
         this.status = gui("creation_sent");
@@ -128,8 +129,20 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         int left = this.leftPos;
         int top = this.topPos;
-        graphics.fill(left, top, left + FIELD_WIDTH + 20, top + SCREEN_HEIGHT, 0xE0181A20);
-        graphics.outline(left, top, FIELD_WIDTH + 20, SCREEN_HEIGHT, 0xFFB89445);
+        graphics.blit(
+            RenderPipelines.GUI_TEXTURED,
+            BACKGROUND,
+            left,
+            top,
+            0.0F,
+            0.0F,
+            FIELD_WIDTH + 20,
+            SCREEN_HEIGHT,
+            FIELD_WIDTH + 20,
+            SCREEN_HEIGHT,
+            FIELD_WIDTH + 20,
+            SCREEN_HEIGHT
+        );
 
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
         graphics.centeredText(this.font, this.title, this.width / 2, top + 8, 0xFFFFD878);
@@ -158,11 +171,5 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
     }
 
     /** Bounded client draft; the server revalidates every field before persistence. */
-    public record KingdomDraft(
-        String kingdomName,
-        String currencyName,
-        int ironValue,
-        int copperValue,
-        int goldValue
-    ) { }
+    public record KingdomDraft(String kingdomName, String currencyName) { }
 }

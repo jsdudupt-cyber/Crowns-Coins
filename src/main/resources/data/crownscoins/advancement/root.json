@@ -1,0 +1,12 @@
+{
+  "criteria": { "has_item": { "trigger": "minecraft:inventory_changed", "conditions": { "items": [ { "items": "crownscoins:mint_house" } ] } } },
+  "display": {
+    "background": "minecraft:gui/advancements/backgrounds/stone",
+    "icon": { "id": "crownscoins:mint_house" },
+    "title": { "translate": "advancements.crownscoins.root.title" },
+    "description": { "translate": "advancements.crownscoins.root.description" },
+    "show_toast": false,
+    "announce_to_chat": false
+  },
+  "requirements": [ [ "has_item" ] ]
+}

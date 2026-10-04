@@ -1,0 +1,12 @@
+{
+  "parent": "crownscoins:root",
+  "criteria": { "triggered": { "trigger": "minecraft:impossible" } },
+  "display": {
+    "icon": { "id": "crownscoins:gold_coin" },
+    "title": { "translate": "advancements.crownscoins.kingdom.title" },
+    "description": { "translate": "advancements.crownscoins.kingdom.description" },
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "requirements": [ [ "triggered" ] ]
+}

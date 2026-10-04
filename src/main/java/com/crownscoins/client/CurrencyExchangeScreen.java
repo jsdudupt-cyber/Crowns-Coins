@@ -1,13 +1,21 @@
 package com.crownscoins.client;
 
+import com.crownscoins.CrownsCoins;
 import com.crownscoins.menu.CurrencyExchangeMenu;
+import com.crownscoins.menu.MintHouseMenu;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 
 /** A compact, metal-and-wood counter UI for the public currency exchange. */
 public final class CurrencyExchangeScreen extends AbstractContainerScreen<CurrencyExchangeMenu> {
+    private static final Identifier BACKGROUND = Identifier.fromNamespaceAndPath(
+        CrownsCoins.MOD_ID,
+        "textures/gui/currency_exchange_bg.png"
+    );
     private static final int SCREEN_WIDTH = 256;
     private static final int SCREEN_HEIGHT = 282;
     private static final int EXCHANGE_INPUT_X = 48;
@@ -42,7 +50,7 @@ public final class CurrencyExchangeScreen extends AbstractContainerScreen<Curren
         graphics.centeredText(this.font, "→", left + 132, top + 66, 0xFFFFD34F);
 
         graphics.centeredText(this.font, gui("melt_coins"), left + SCREEN_WIDTH / 2, top + 103, 0xFFE4C67A);
-        graphics.centeredText(this.font, gui("melt_rule"), left + SCREEN_WIDTH / 2, top + 113, 0xFFCED2D4);
+        graphics.centeredText(this.font, gui("melt_rule", MintHouseMenu.COPPER_NUGGETS_PER_COIN, MintHouseMenu.IRON_NUGGETS_PER_COIN, MintHouseMenu.GOLD_NUGGETS_PER_COIN), left + SCREEN_WIDTH / 2, top + 113, 0xFFCED2D4);
         graphics.centeredText(this.font, gui("melt_input"), left + MELT_INPUT_X + 8, top + 146, 0xFFE4C67A);
         graphics.centeredText(this.font, gui("melt_output"), left + MELT_OUTPUT_X + 8, top + 146, 0xFFE4C67A);
         graphics.centeredText(this.font, "→", left + 105, top + 129, 0xFFFFD34F);
@@ -52,11 +60,20 @@ public final class CurrencyExchangeScreen extends AbstractContainerScreen<Curren
     }
 
     private static void renderFrame(GuiGraphicsExtractor graphics, int left, int top) {
-        graphics.fill(left, top, left + SCREEN_WIDTH, top + SCREEN_HEIGHT, 0xF0121214);
-        graphics.outline(left, top, SCREEN_WIDTH, SCREEN_HEIGHT, 0xFF8C673C);
-        panel(graphics, left + 12, top + 24, 232, 68);
-        panel(graphics, left + 12, top + 96, 232, 68);
-        panel(graphics, left + 12, top + 168, 232, 104);
+        graphics.blit(
+            RenderPipelines.GUI_TEXTURED,
+            BACKGROUND,
+            left,
+            top,
+            0.0F,
+            0.0F,
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT,
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT,
+            SCREEN_WIDTH,
+            SCREEN_HEIGHT
+        );
 
         slotFrame(graphics, left + EXCHANGE_INPUT_X, top + EXCHANGE_Y);
         slotFrame(graphics, left + EXCHANGE_OUTPUT_X, top + EXCHANGE_Y);
@@ -72,14 +89,10 @@ public final class CurrencyExchangeScreen extends AbstractContainerScreen<Curren
         }
     }
 
-    private static void panel(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
-        graphics.fill(x, y, x + width, y + height, 0xE0181A20);
-        graphics.outline(x, y, width, height, 0xFF5E4A31);
-    }
-
     private static void slotFrame(GuiGraphicsExtractor graphics, int x, int y) {
-        graphics.fill(x - 1, y - 1, x + 19, y + 19, 0xFF151719);
-        graphics.outline(x - 1, y - 1, 20, 20, 0xFF856539);
+        graphics.fill(x - 1, y - 1, x + 19, y + 19, 0xFF151617);
+        graphics.outline(x - 1, y - 1, 20, 20, 0xFF8F8F8A);
+        graphics.fill(x + 1, y + 1, x + 18, y + 18, 0xFF2B2D2E);
     }
 
     @Override
@@ -87,7 +100,7 @@ public final class CurrencyExchangeScreen extends AbstractContainerScreen<Curren
         return false;
     }
 
-    private static Component gui(String key) {
-        return Component.translatable("gui.crownscoins." + key);
+    private static Component gui(String key, Object... arguments) {
+        return Component.translatable("gui.crownscoins." + key, arguments);
     }
 }

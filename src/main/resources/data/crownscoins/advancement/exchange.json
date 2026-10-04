@@ -1,0 +1,12 @@
+{
+  "parent": "crownscoins:root",
+  "criteria": { "has_item": { "trigger": "minecraft:inventory_changed", "conditions": { "items": [ { "items": "crownscoins:currency_exchange" } ] } } },
+  "display": {
+    "icon": { "id": "crownscoins:currency_exchange" },
+    "title": { "translate": "advancements.crownscoins.exchange.title" },
+    "description": { "translate": "advancements.crownscoins.exchange.description" },
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "requirements": [ [ "has_item" ] ]
+}

@@ -21,8 +21,6 @@ public final class Kingdom {
     public static final int MAX_KINGDOM_NAME_LENGTH = 32;
     public static final int MIN_CURRENCY_NAME_LENGTH = 1;
     public static final int MAX_CURRENCY_NAME_LENGTH = 24;
-    public static final int MIN_COIN_VALUE = 1;
-    public static final int MAX_COIN_VALUE = 1_000_000;
     /** One bronze coin is the base unit used by every kingdom. */
     public static final int COPPER_COIN_VALUE = 1;
     /** Twenty bronze coins have the economic value of one iron coin. */
@@ -33,7 +31,8 @@ public final class Kingdom {
     /**
      * The serialized form deliberately contains only primitive, server-verifiable data.
      * Membership is encoded as UUIDs rather than player names so name changes do not
-     * orphan a kingdom member.
+     * orphan a kingdom member. Coin values are the same for every kingdom, so they are
+     * not stored; older saves that still contain them are read and the extra fields ignored.
      */
     public static final Codec<Kingdom> CODEC = Stored.CODEC.flatXmap(
         Stored::toKingdom,
@@ -46,22 +45,10 @@ public final class Kingdom {
     private final String name;
     private final String currencyName;
     private final Symbol crest;
-    private final int ironValue;
-    private final int copperValue;
-    private final int goldValue;
 
     /** Creates a new kingdom whose only initial member is its founder. */
-    public Kingdom(
-        UUID id,
-        UUID founder,
-        String name,
-        String currencyName,
-        Symbol crest,
-        int ironValue,
-        int copperValue,
-        int goldValue
-    ) {
-        this(id, founder, List.of(Objects.requireNonNull(founder, "founder")), name, currencyName, crest, ironValue, copperValue, goldValue);
+    public Kingdom(UUID id, UUID founder, String name, String currencyName, Symbol crest) {
+        this(id, founder, List.of(Objects.requireNonNull(founder, "founder")), name, currencyName, crest);
     }
 
     private Kingdom(
@@ -70,22 +57,13 @@ public final class Kingdom {
         Collection<UUID> members,
         String name,
         String currencyName,
-        Symbol crest,
-        int ironValue,
-        int copperValue,
-        int goldValue
+        Symbol crest
     ) {
         this.id = Objects.requireNonNull(id, "id");
         this.founder = Objects.requireNonNull(founder, "founder");
         this.name = normalizeText(name, "Kingdom name", MIN_KINGDOM_NAME_LENGTH, MAX_KINGDOM_NAME_LENGTH);
         this.currencyName = normalizeText(currencyName, "Currency name", MIN_CURRENCY_NAME_LENGTH, MAX_CURRENCY_NAME_LENGTH);
         this.crest = Objects.requireNonNull(crest, "crest");
-        validateValue(ironValue);
-        validateValue(copperValue);
-        validateValue(goldValue);
-        this.ironValue = ironValue;
-        this.copperValue = copperValue;
-        this.goldValue = goldValue;
 
         Objects.requireNonNull(members, "members");
         this.members = new LinkedHashSet<>();
@@ -96,16 +74,8 @@ public final class Kingdom {
         this.members.add(this.founder);
     }
 
-    public static Kingdom create(
-        UUID founder,
-        String name,
-        String currencyName,
-        Symbol crest,
-        int ironValue,
-        int copperValue,
-        int goldValue
-    ) {
-        return new Kingdom(UUID.randomUUID(), founder, name, currencyName, crest, ironValue, copperValue, goldValue);
+    public static Kingdom create(UUID founder, String name, String currencyName, Symbol crest) {
+        return new Kingdom(UUID.randomUUID(), founder, name, currencyName, crest);
     }
 
     /**
@@ -126,18 +96,12 @@ public final class Kingdom {
         }
         for (int offset = 0; offset < normalized.length();) {
             int codePoint = normalized.codePointAt(offset);
-            if (Character.isISOControl(codePoint) || codePoint == '\u00A7') {
+            if (Character.isISOControl(codePoint) || codePoint == '§') {
                 throw new IllegalArgumentException(field + " contains a disallowed control character");
             }
             offset += Character.charCount(codePoint);
         }
         return normalized;
-    }
-
-    private static void validateValue(int value) {
-        if (value < MIN_COIN_VALUE || value > MAX_COIN_VALUE) {
-            throw new IllegalArgumentException("Coin value must be between " + MIN_COIN_VALUE + " and " + MAX_COIN_VALUE);
-        }
     }
 
     public UUID id() {
@@ -176,97 +140,34 @@ public final class Kingdom {
         return crest;
     }
 
-    public int ironValue() {
-        return ironValue;
-    }
-
-    public int copperValue() {
-        return copperValue;
-    }
-
-    public int goldValue() {
-        return goldValue;
-    }
-
+    /** Fixed catalog value of one coin of this metal, the same in every kingdom. */
     public int value(Metal metal) {
         return switch (Objects.requireNonNull(metal, "metal")) {
-            case IRON -> ironValue;
-            case COPPER -> copperValue;
-            case GOLD -> goldValue;
+            case IRON -> IRON_COIN_VALUE;
+            case COPPER -> COPPER_COIN_VALUE;
+            case GOLD -> GOLD_COIN_VALUE;
         };
-    }
-
-    /** Returns whether this kingdom follows the shared Crown & Coins denomination. */
-    public boolean hasStandardEconomy() {
-        return isStandardEconomy(this.ironValue, this.copperValue, this.goldValue);
-    }
-
-    /** Validates the fixed denomination used for every kingdom currency. */
-    public static boolean isStandardEconomy(int ironValue, int copperValue, int goldValue) {
-        return ironValue == IRON_COIN_VALUE
-            && copperValue == COPPER_COIN_VALUE
-            && goldValue == GOLD_COIN_VALUE;
     }
 
     /* Package-private: used only while normalizing legacy saved-data crests. */
     Kingdom withCrest(Symbol replacementCrest) {
-        return new Kingdom(
-            this.id,
-            this.founder,
-            this.members,
-            this.name,
-            this.currencyName,
-            replacementCrest,
-            this.ironValue,
-            this.copperValue,
-            this.goldValue
-        );
+        return new Kingdom(this.id, this.founder, this.members, this.name, this.currencyName, replacementCrest);
     }
 
     /* Package-private: SavedData owns mutations so it can mark itself dirty. */
     Kingdom withCurrencyName(String replacementCurrencyName) {
-        return new Kingdom(
-            this.id,
-            this.founder,
-            this.members,
-            this.name,
-            replacementCurrencyName,
-            this.crest,
-            this.ironValue,
-            this.copperValue,
-            this.goldValue
-        );
+        return new Kingdom(this.id, this.founder, this.members, this.name, replacementCurrencyName, this.crest);
     }
 
     /* Package-private: SavedData owns mutations so it can maintain the name index. */
     Kingdom withName(String replacementName) {
-        return new Kingdom(
-            this.id,
-            this.founder,
-            this.members,
-            replacementName,
-            this.currencyName,
-            this.crest,
-            this.ironValue,
-            this.copperValue,
-            this.goldValue
-        );
+        return new Kingdom(this.id, this.founder, this.members, replacementName, this.currencyName, this.crest);
+    }
+    /* Package-private: hands the kingdom to another member; the old founder stays a regular member. */
+    Kingdom withFounder(UUID newFounder) {
+        return new Kingdom(this.id, newFounder, this.members, this.name, this.currencyName, this.crest);
     }
 
-    /* Package-private: upgrades legacy saves to the common denomination. */
-    Kingdom withStandardEconomy() {
-        return new Kingdom(
-            this.id,
-            this.founder,
-            this.members,
-            this.name,
-            this.currencyName,
-            this.crest,
-            IRON_COIN_VALUE,
-            COPPER_COIN_VALUE,
-            GOLD_COIN_VALUE
-        );
-    }
 
     /* Package-private: SavedData owns mutations so it can mark itself dirty. */
     boolean addMember(UUID playerId) {
@@ -289,10 +190,7 @@ public final class Kingdom {
         List<UUID> members,
         String name,
         String currencyName,
-        Symbol crest,
-        int ironValue,
-        int copperValue,
-        int goldValue
+        Symbol crest
     ) {
         private static final Codec<Stored> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             UUIDUtil.CODEC.fieldOf("id").forGetter(Stored::id),
@@ -300,24 +198,18 @@ public final class Kingdom {
             UUIDUtil.CODEC.listOf().fieldOf("members").forGetter(Stored::members),
             Codec.STRING.fieldOf("name").forGetter(Stored::name),
             Codec.STRING.fieldOf("currency_name").forGetter(Stored::currencyName),
-            Symbol.CODEC.fieldOf("crest").forGetter(Stored::crest),
-            Codec.INT.fieldOf("iron_value").forGetter(Stored::ironValue),
-            Codec.INT.fieldOf("copper_value").forGetter(Stored::copperValue),
-            Codec.INT.fieldOf("gold_value").forGetter(Stored::goldValue)
+            Symbol.CODEC.fieldOf("crest").forGetter(Stored::crest)
         ).apply(instance, Stored::new));
 
         private static Stored of(Kingdom kingdom) {
             return new Stored(
-                kingdom.id, kingdom.founder, kingdom.memberList(), kingdom.name, kingdom.currencyName,
-                kingdom.crest, kingdom.ironValue, kingdom.copperValue, kingdom.goldValue
+                kingdom.id, kingdom.founder, kingdom.memberList(), kingdom.name, kingdom.currencyName, kingdom.crest
             );
         }
 
         private DataResult<Kingdom> toKingdom() {
             try {
-                return DataResult.success(new Kingdom(
-                    id, founder, members, name, currencyName, crest, ironValue, copperValue, goldValue
-                ));
+                return DataResult.success(new Kingdom(id, founder, members, name, currencyName, crest));
             } catch (IllegalArgumentException | NullPointerException e) {
                 return DataResult.error(() -> "Invalid saved kingdom: " + e.getMessage());
             }

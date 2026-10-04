@@ -1,0 +1,12 @@
+{
+  "parent": "crownscoins:kingdom",
+  "criteria": { "triggered": { "trigger": "minecraft:impossible" } },
+  "display": {
+    "icon": { "id": "crownscoins:copper_coin" },
+    "title": { "translate": "advancements.crownscoins.first_mint.title" },
+    "description": { "translate": "advancements.crownscoins.first_mint.description" },
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "requirements": [ [ "triggered" ] ]
+}

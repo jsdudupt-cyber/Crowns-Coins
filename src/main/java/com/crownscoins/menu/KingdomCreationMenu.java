@@ -2,6 +2,7 @@ package com.crownscoins.menu;
 
 import com.crownscoins.block.MintHouseBlockEntity;
 import com.crownscoins.CrownsCoins;
+import com.crownscoins.ModAdvancements;
 import com.crownscoins.kingdom.Kingdom;
 import com.crownscoins.kingdom.KingdomCrest;
 import com.crownscoins.kingdom.KingdomSavedData;
@@ -82,9 +83,6 @@ public final class KingdomCreationMenu extends MintHouseBoundMenu implements Net
             player,
             payload.kingdomName(),
             payload.currencyName(),
-            payload.ironValue(),
-            payload.copperValue(),
-            payload.goldValue(),
             payload.crestId()
         );
         if (request.isEmpty()) {
@@ -106,12 +104,11 @@ public final class KingdomCreationMenu extends MintHouseBoundMenu implements Net
                 player.getUUID(),
                 details.kingdomName(),
                 details.currencyName(),
-                details.crest(),
-                details.ironValue(),
-                details.copperValue(),
-                details.goldValue()
+                details.crest()
             );
             mintHouse.get().bind(kingdom.id());
+            com.crownscoins.network.KingdomSync.sendToAll(player.level().getServer());
+            ModAdvancements.award(player, ModAdvancements.KINGDOM);
             player.sendSystemMessage(Component.translatable("message.crownscoins.kingdom_created", kingdom.name()));
         } catch (IllegalArgumentException | IllegalStateException ignored) {
             // The SavedData repeats all global invariants, including name and member
@@ -128,15 +125,12 @@ public final class KingdomCreationMenu extends MintHouseBoundMenu implements Net
         ServerPlayer player,
         String kingdomName,
         String currencyName,
-        int ironValue,
-        int copperValue,
-        int goldValue,
         int crestId
     ) {
         if (!(player.containerMenu instanceof KingdomCreationMenu menu)) {
             return Optional.empty();
         }
-        return menu.validatePayload(player, kingdomName, currencyName, ironValue, copperValue, goldValue, crestId);
+        return menu.validatePayload(player, kingdomName, currencyName, crestId);
     }
 
     /**
@@ -148,9 +142,6 @@ public final class KingdomCreationMenu extends MintHouseBoundMenu implements Net
         ServerPlayer player,
         String kingdomName,
         String currencyName,
-        int ironValue,
-        int copperValue,
-        int goldValue,
         int crestId
     ) {
         Optional<MintHouseBlockEntity> mintHouse = currentMintHouse(player);
@@ -160,9 +151,6 @@ public final class KingdomCreationMenu extends MintHouseBoundMenu implements Net
 
         KingdomSavedData kingdoms = KingdomSavedData.get((ServerLevel) player.level());
         if (kingdoms.hasKingdom(player.getUUID())) {
-            return Optional.empty();
-        }
-        if (!Kingdom.isStandardEconomy(ironValue, copperValue, goldValue)) {
             return Optional.empty();
         }
 
@@ -176,10 +164,7 @@ public final class KingdomCreationMenu extends MintHouseBoundMenu implements Net
                 player.getUUID(),
                 kingdomName,
                 currencyName,
-                crest,
-                ironValue,
-                copperValue,
-                goldValue
+                crest
             );
         } catch (IllegalArgumentException | NullPointerException ignored) {
             return Optional.empty();
@@ -188,17 +173,14 @@ public final class KingdomCreationMenu extends MintHouseBoundMenu implements Net
         if (kingdoms.findByName(kingdomName).isPresent()) {
             return Optional.empty();
         }
-        return Optional.of(new CreationRequest(kingdomName, currencyName, crest, ironValue, copperValue, goldValue));
+        return Optional.of(new CreationRequest(kingdomName, currencyName, crest));
     }
 
     /** A server-validated creation intent suitable for {@link KingdomSavedData#createKingdom}. */
     public record CreationRequest(
         String kingdomName,
         String currencyName,
-        Symbol crest,
-        int ironValue,
-        int copperValue,
-        int goldValue
+        Symbol crest
     ) {
     }
 }
