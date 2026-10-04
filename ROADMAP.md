@@ -26,6 +26,10 @@ Ordem de merge: `feature/kingdom-members` â†’ `cleanup/coin-data` â†’ 
        projeto prÃ³prio (estruturas de teste); avaliar o custo antes.
 8. [ ] **Instalar o GitHub CLI** (usuÃ¡rio): `winget install GitHub.cli` e `gh auth login`, para o Claude
        criar PRs sozinho.
+9. [ ] **Mais uso para as moedas** (decisão do usuário): troca com aldeões ou barril de loja de jogador.
+10. [ ] **Sons, partículas e conquistas** (fornalha crepitando, martelada ao cunhar, fumaça, advancements).
+11. [ ] **Configurar o resto**: custos das pepitas, velocidade da fornalha e tamanho da arca no arquivo de configuração.
+12. [ ] **Publicação**: README com capturas, ícone e logo, licença, build automático no GitHub, versão estável do Minecraft.
 
 ## Feito
 - [x] CorreÃ§Ãµes da revisÃ£o: Shift+clique, pepitas ao quebrar, codecs de salvamento, textos traduzÃ­veis.

@@ -48,9 +48,11 @@ public final class KingdomCommands {
 
     @SubscribeEvent
     public static void register(RegisterCommandsEvent event) {
+        // The root literal is shared with the player commands in WalletCommands, so only the
+        // kingdom branch is limited to operators.
         event.getDispatcher().register(Commands.literal("crownscoins")
-            .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
             .then(Commands.literal("kingdom")
+                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                 .then(Commands.literal("list").executes(KingdomCommands::list))
                 .then(Commands.literal("info").then(kingdomArgument().executes(KingdomCommands::info)))
                 .then(Commands.literal("delete").then(kingdomArgument().executes(KingdomCommands::delete)))
