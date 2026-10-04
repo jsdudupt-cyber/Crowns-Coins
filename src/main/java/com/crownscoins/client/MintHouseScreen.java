@@ -51,6 +51,14 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
     private static final int[] QUANTITY_BUTTON_WIDTH = {28, 28, 28, 31};
     private static final int QUANTITY_BUTTON_Y = 255;
     private static final int QUANTITY_BUTTON_HEIGHT = 13;
+    /** The two header plaques painted into the texture: kingdom name (left) and currency (right). */
+    private static final int KINGDOM_PLAQUE_CENTER_X = 128;
+    private static final int KINGDOM_PLAQUE_CHARS = 18;
+    private static final int CURRENCY_COIN_X = 241;
+    private static final int CURRENCY_COIN_Y = 40;
+    private static final int CURRENCY_PLAQUE_CENTER_X = 322;
+    private static final int CURRENCY_PLAQUE_CHARS = 15;
+    private static final int PLAQUE_TEXT_Y = 44;
     /** The two 28px coin slots painted into the minting panel of the texture. */
     private static final int BASE_SLOT_X = 343;
     private static final int RESULT_SLOT_X = 416;
@@ -604,22 +612,31 @@ public final class MintHouseScreen extends AbstractContainerScreen<MintHouseMenu
 
     /** Replaces the names painted in the mockup with the live kingdom data. */
     private void renderDesignHeaderText(GuiGraphicsExtractor graphics, int left, int top) {
-        graphics.text(this.font, Component.literal(shortName(this.display.kingdomName(), 16)), left + 72, top + 43, GOLD);
+        // Both names are centred in the two plaques painted into the header texture.
+        renderPlaqueText(graphics, shortName(this.display.kingdomName(), KINGDOM_PLAQUE_CHARS), left + KINGDOM_PLAQUE_CENTER_X, top + PLAQUE_TEXT_Y);
         graphics.blit(
             RenderPipelines.GUI_TEXTURED,
             coinShapeTexture(this.selectedMetal, visualShape()),
-            left + 263,
-            top + 37,
+            left + CURRENCY_COIN_X,
+            top + CURRENCY_COIN_Y,
             0.0F,
             0.0F,
-            18,
-            18,
+            16,
+            16,
             16,
             16,
             16,
             16
         );
-        graphics.text(this.font, Component.literal(shortName(this.display.currencyName(), 12)), left + 290, top + 43, GOLD);
+        renderPlaqueText(graphics, shortName(this.display.currencyName(), CURRENCY_PLAQUE_CHARS), left + CURRENCY_PLAQUE_CENTER_X, top + PLAQUE_TEXT_Y);
+    }
+
+    /** Gold text centred on {@code centerX} with a one-pixel shadow so it stands out on the plaque pattern. */
+    private void renderPlaqueText(GuiGraphicsExtractor graphics, String value, int centerX, int y) {
+        Component text = Component.literal(value);
+        int x = centerX - this.font.width(text) / 2;
+        graphics.text(this.font, text, x + 1, y + 1, 0xFF000000);
+        graphics.text(this.font, text, x, y, GOLD);
     }
 
     private void renderWorkbenchPanel(GuiGraphicsExtractor graphics, int x, int y, int width, int height) {
