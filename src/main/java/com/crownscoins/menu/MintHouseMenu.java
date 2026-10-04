@@ -23,6 +23,9 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.minecraft.server.players.NameAndId;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
@@ -414,6 +417,14 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             quantity,
             validated.kingdom().currencyName()
         ));
+        playMintEffects((ServerLevel) player.level());
+    }
+
+    /** A hammer blow on an anvil and a burst of sparks over the press, for everyone nearby. */
+    private void playMintEffects(ServerLevel level) {
+        BlockPos pos = mintHousePos();
+        level.playSound(null, pos, SoundEvents.ANVIL_USE, SoundSource.BLOCKS, 0.6F, 1.4F);
+        level.sendParticles(ParticleTypes.CRIT, pos.getX() + 0.5, pos.getY() + 1.1, pos.getZ() + 0.5, 12, 0.35, 0.2, 0.35, 0.15);
     }
 
     /**

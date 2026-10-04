@@ -21,7 +21,8 @@ público (proteção contra roubo, publicação, testes automáticos) fica para 
        Corrigir o que o usuário reportar (ele manda captura de tela).
 2. [ ] **Fazer o merge dos PRs** (usuário). Depois: atualizar o `main` local e apagar as branches
        antigas (**só com autorização**).
-3. [ ] **Sons e partículas**: fornalha crepitando, martelada ao cunhar, fumaça. Dá vida ao mod.
+3. [x] **Sons e partículas** (feito, falta o usuário ouvir e aprovar): fornalha crepitando com fumaça
+       e chamas, som ao acender, "ding" a cada moeda-base, martelada com faíscas ao cunhar.
 4. [ ] **Fornalha mostra só 9 dos 27 slots da arca** (a arte tem grade 3×3). Precisa de rolagem e arte
        nova. **Prévia antes.**
 5. [ ] **Conquistas simples** (primeiro reino, primeira moeda, etc.) para guiar os amigos.

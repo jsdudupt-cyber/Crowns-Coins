@@ -14,6 +14,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.UUIDUtil;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Container;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.SimpleContainer;
@@ -134,6 +136,8 @@ public final class MintHouseBlockEntity extends BlockEntity implements WorldlyCo
             furnaceInput.setChanged();
         }
         storeCoins(baseCoin);
+        // A soft chime for every base coin that lands in the chest.
+        level.playSound(null, this.worldPosition, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 0.5F, 1.3F);
         furnaceTicks = 0;
         setChanged();
     }
@@ -147,8 +151,13 @@ public final class MintHouseBlockEntity extends BlockEntity implements WorldlyCo
         if (litSynced && working == furnaceWorking) {
             return;
         }
+        // A real transition (not the first check after loading) gets a small ignition sound.
+        boolean ignited = litSynced && working;
         litSynced = true;
         furnaceWorking = working;
+        if (ignited) {
+            level.playSound(null, this.worldPosition, SoundEvents.FIRECHARGE_USE, SoundSource.BLOCKS, 0.5F, 1.1F);
+        }
         BlockPos headPos = this.worldPosition.relative(this.getBlockState().getValue(MintHouseBlock.FACING).getClockWise());
         BlockState head = level.getBlockState(headPos);
         if (head.is(CrownsCoins.MINT_HOUSE.get())
