@@ -84,9 +84,6 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
                 data.readUtf(Kingdom.MAX_CURRENCY_NAME_LENGTH),
                 Symbol.byId(data.readVarInt()),
                 data.readBoolean(),
-                data.readVarInt(),
-                data.readVarInt(),
-                data.readVarInt(),
                 readMemberNames(data)
             )
         );
@@ -613,24 +610,10 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
         String currencyName,
         Symbol crest,
         boolean canEditCurrency,
-        int ironValue,
-        int copperValue,
-        int goldValue,
-
         List<String> memberNames
     ) {
         private static ClientMintData empty() {
-            return new ClientMintData(
-                "",
-                "",
-                Symbol.CROWN,
-                false,
-                Kingdom.IRON_COIN_VALUE,
-                Kingdom.COPPER_COIN_VALUE,
-                Kingdom.GOLD_COIN_VALUE,
-
-                List.of()
-            );
+            return new ClientMintData("", "", Symbol.CROWN, false, List.of());
         }
     }
 }

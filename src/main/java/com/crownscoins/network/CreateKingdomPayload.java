@@ -17,10 +17,7 @@ public record CreateKingdomPayload(
         int containerId,
         String kingdomName,
         String currencyName,
-        int crestId,
-        int ironValue,
-        int copperValue,
-        int goldValue
+        int crestId
 ) implements CustomPacketPayload {
     public static final int MAX_KINGDOM_NAME_LENGTH = 32;
     public static final int MAX_CURRENCY_NAME_LENGTH = 24;
@@ -30,7 +27,7 @@ public record CreateKingdomPayload(
     );
 
     /**
-     * Transport limits are deliberately narrow. Semantic checks (blank names, values, and crest catalog
+     * Transport limits are deliberately narrow. Semantic checks (blank names and crest catalog
      * membership) remain server-side in the menu/service handling this payload.
      */
     public static final StreamCodec<ByteBuf, CreateKingdomPayload> STREAM_CODEC = StreamCodec.composite(
@@ -42,12 +39,6 @@ public record CreateKingdomPayload(
             CreateKingdomPayload::currencyName,
             ByteBufCodecs.VAR_INT,
             CreateKingdomPayload::crestId,
-            ByteBufCodecs.VAR_INT,
-            CreateKingdomPayload::ironValue,
-            ByteBufCodecs.VAR_INT,
-            CreateKingdomPayload::copperValue,
-            ByteBufCodecs.VAR_INT,
-            CreateKingdomPayload::goldValue,
             CreateKingdomPayload::new
     );
 

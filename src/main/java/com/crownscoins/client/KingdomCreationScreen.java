@@ -87,19 +87,13 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
 
         KingdomDraft draft = new KingdomDraft(
             this.kingdomName.getValue().strip(),
-            defaultCurrencyName(this.kingdomName.getValue()),
-            Kingdom.IRON_COIN_VALUE,
-            Kingdom.COPPER_COIN_VALUE,
-            Kingdom.GOLD_COIN_VALUE
+            defaultCurrencyName(this.kingdomName.getValue())
         );
         ClientPacketDistributor.sendToServer(new CreateKingdomPayload(
             this.menu.containerId,
             draft.kingdomName(),
             draft.currencyName(),
-            KingdomCrest.ROYAL_CROWN.id(),
-            draft.ironValue(),
-            draft.copperValue(),
-            draft.goldValue()
+            KingdomCrest.ROYAL_CROWN.id()
         ));
         this.createButton.active = false;
         this.status = gui("creation_sent");
@@ -177,11 +171,5 @@ public final class KingdomCreationScreen extends AbstractContainerScreen<Kingdom
     }
 
     /** Bounded client draft; the server revalidates every field before persistence. */
-    public record KingdomDraft(
-        String kingdomName,
-        String currencyName,
-        int ironValue,
-        int copperValue,
-        int goldValue
-    ) { }
+    public record KingdomDraft(String kingdomName, String currencyName) { }
 }

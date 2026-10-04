@@ -31,7 +31,6 @@ import net.minecraft.world.level.Level;
 public final class CurrencyExchangeMenu extends AbstractContainerMenu {
     public static final int COPPER_TO_IRON_COUNT = 20;
     public static final int IRON_TO_GOLD_COUNT = 25;
-    public static final int NUGGETS_PER_MELTED_COIN = 1;
 
     private static final int EXCHANGE_INPUT_SLOT = 0;
     private static final int EXCHANGE_OUTPUT_SLOT = 1;
@@ -242,7 +241,16 @@ public final class CurrencyExchangeMenu extends AbstractContainerMenu {
         if (material == null) {
             return ItemStack.EMPTY;
         }
-        return new ItemStack(nuggetFor(material), NUGGETS_PER_MELTED_COIN);
+        return new ItemStack(nuggetFor(material), nuggetsPerCoin(material));
+    }
+
+    /** Melting returns exactly what minting the base coin costs, so recycling loses nothing. */
+    public static int nuggetsPerCoin(CoinData.Material material) {
+        return switch (material) {
+            case COPPER -> MintHouseMenu.COPPER_NUGGETS_PER_COIN;
+            case IRON -> MintHouseMenu.IRON_NUGGETS_PER_COIN;
+            case GOLD -> MintHouseMenu.GOLD_NUGGETS_PER_COIN;
+        };
     }
 
     /**

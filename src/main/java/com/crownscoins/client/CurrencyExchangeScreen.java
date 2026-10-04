@@ -2,6 +2,7 @@ package com.crownscoins.client;
 
 import com.crownscoins.CrownsCoins;
 import com.crownscoins.menu.CurrencyExchangeMenu;
+import com.crownscoins.menu.MintHouseMenu;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -49,7 +50,7 @@ public final class CurrencyExchangeScreen extends AbstractContainerScreen<Curren
         graphics.centeredText(this.font, "→", left + 132, top + 66, 0xFFFFD34F);
 
         graphics.centeredText(this.font, gui("melt_coins"), left + SCREEN_WIDTH / 2, top + 103, 0xFFE4C67A);
-        graphics.centeredText(this.font, gui("melt_rule"), left + SCREEN_WIDTH / 2, top + 113, 0xFFCED2D4);
+        graphics.centeredText(this.font, gui("melt_rule", MintHouseMenu.COPPER_NUGGETS_PER_COIN, MintHouseMenu.IRON_NUGGETS_PER_COIN, MintHouseMenu.GOLD_NUGGETS_PER_COIN), left + SCREEN_WIDTH / 2, top + 113, 0xFFCED2D4);
         graphics.centeredText(this.font, gui("melt_input"), left + MELT_INPUT_X + 8, top + 146, 0xFFE4C67A);
         graphics.centeredText(this.font, gui("melt_output"), left + MELT_OUTPUT_X + 8, top + 146, 0xFFE4C67A);
         graphics.centeredText(this.font, "→", left + 105, top + 129, 0xFFFFD34F);
@@ -99,7 +100,7 @@ public final class CurrencyExchangeScreen extends AbstractContainerScreen<Curren
         return false;
     }
 
-    private static Component gui(String key) {
-        return Component.translatable("gui.crownscoins." + key);
+    private static Component gui(String key, Object... arguments) {
+        return Component.translatable("gui.crownscoins." + key, arguments);
     }
 }

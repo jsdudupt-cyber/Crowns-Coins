@@ -57,10 +57,6 @@ public final class KingdomSavedData extends SavedData {
                 existing = existing.withCrest(normalizedCrest);
                 migratedLegacyData = true;
             }
-            if (!existing.hasStandardEconomy()) {
-                existing = existing.withStandardEconomy();
-                migratedLegacyData = true;
-            }
             try {
                 indexExisting(existing);
             } catch (IllegalArgumentException conflict) {
@@ -113,15 +109,7 @@ public final class KingdomSavedData extends SavedData {
      * @throws IllegalStateException if the founder already belongs to a kingdom
      * @throws IllegalArgumentException if the name is in use or a kingdom field is invalid
      */
-    public Kingdom createKingdom(
-        UUID founder,
-        String name,
-        String currencyName,
-        Symbol crest,
-        int ironValue,
-        int copperValue,
-        int goldValue
-    ) {
+    public Kingdom createKingdom(UUID founder, String name, String currencyName, Symbol crest) {
         Objects.requireNonNull(founder, "founder");
         if (hasKingdom(founder)) {
             throw new IllegalStateException("A player may belong to only one kingdom");
@@ -132,7 +120,7 @@ public final class KingdomSavedData extends SavedData {
             throw new IllegalArgumentException("A kingdom with that name already exists");
         }
 
-        Kingdom kingdom = Kingdom.create(founder, name, currencyName, crest, ironValue, copperValue, goldValue);
+        Kingdom kingdom = Kingdom.create(founder, name, currencyName, crest);
         indexExisting(kingdom);
         setDirty();
         return kingdom;
