@@ -223,14 +223,10 @@ public final class CurrencyExchangeMenu extends AbstractContainerMenu {
             original.kingdomId(),
             original.kingdomName(),
             original.currencyName(),
-            original.kingdomCrest(),
             exchange.targetMaterial(),
             (int) targetValue,
-            // Preserve every visual/provenance field when a denomination is
-            // converted, including old symbols and the new shape selection.
-            original.styleId(),
-            original.shapeId(),
-            original.symbols()
+            // The design (shape) is preserved when a denomination is converted.
+            original.shapeId()
         ));
         output.set(DataComponents.CUSTOM_NAME, Component.literal(original.currencyName()));
         return output;

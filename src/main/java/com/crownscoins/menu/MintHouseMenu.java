@@ -460,14 +460,9 @@ public final class MintHouseMenu extends MintHouseBoundMenu implements
             kingdom.id(),
             kingdom.name(),
             kingdom.currencyName(),
-            // Kingdom provenance remains part of the stored currency data even
-            // though the coin face itself is intentionally plain.
-            kingdom.crest(),
             material,
             kingdom.value(request.metal()),
-            Symbol.CROWN.id(),
-            request.shapeId(),
-            List.of()
+            request.shapeId()
         );
         coin.set(CrownsCoins.COIN_DATA.get(), coinData);
         coin.set(DataComponents.CUSTOM_NAME, Component.literal(kingdom.currencyName()));

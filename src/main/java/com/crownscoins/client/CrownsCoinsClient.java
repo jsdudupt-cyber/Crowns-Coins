@@ -34,11 +34,6 @@ public final class CrownsCoinsClient {
 
     @SubscribeEvent
     public static void registerCoinModelProperties(RegisterSelectItemModelPropertyEvent event) {
-        event.register(Identifier.fromNamespaceAndPath(CrownsCoins.MOD_ID, "coin_style"), CoinDataSelectProperty.STYLE_TYPE);
         event.register(Identifier.fromNamespaceAndPath(CrownsCoins.MOD_ID, "coin_shape"), CoinDataSelectProperty.SHAPE_TYPE);
-        event.register(Identifier.fromNamespaceAndPath(CrownsCoins.MOD_ID, "coin_crest"), CoinDataSelectProperty.CREST_TYPE);
-        event.register(Identifier.fromNamespaceAndPath(CrownsCoins.MOD_ID, "coin_symbol_one"), CoinDataSelectProperty.SYMBOL_ONE_TYPE);
-        event.register(Identifier.fromNamespaceAndPath(CrownsCoins.MOD_ID, "coin_symbol_two"), CoinDataSelectProperty.SYMBOL_TWO_TYPE);
-        event.register(Identifier.fromNamespaceAndPath(CrownsCoins.MOD_ID, "coin_symbol_three"), CoinDataSelectProperty.SYMBOL_THREE_TYPE);
     }
 }

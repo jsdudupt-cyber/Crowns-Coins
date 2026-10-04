@@ -5,11 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.crownscoins.kingdom.Symbol;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
-import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +15,7 @@ class CoinDataTest {
     private static final UUID KINGDOM = UUID.fromString("00000000-0000-0000-0000-0000000000c3");
 
     private static CoinData coin(CoinData.Material material, int value, int shape) {
-        return new CoinData(KINGDOM, "Aldenbruk", "Florins", Symbol.CROWN, material, value, Symbol.CROWN.id(), shape, List.of());
+        return new CoinData(KINGDOM, "Aldenbruk", "Florins", material, value, shape);
     }
 
     @Test
@@ -39,7 +37,7 @@ class CoinDataTest {
         assertThrows(IllegalArgumentException.class, () -> coin(CoinData.Material.GOLD, 0, 1));
         assertThrows(IllegalArgumentException.class, () -> coin(CoinData.Material.GOLD, CoinData.MAX_VALUE + 1, 1));
         assertThrows(IllegalArgumentException.class, () -> new CoinData(
-            KINGDOM, "Aldenbruk", "Flo§rins", Symbol.CROWN, CoinData.Material.GOLD, 500, 1, 1, List.of()));
+            KINGDOM, "Aldenbruk", "Flo§rins", CoinData.Material.GOLD, 500, 1));
     }
 
     @Test
@@ -67,5 +65,21 @@ class CoinDataTest {
         var result = CoinData.CODEC.parse(JsonOps.INSTANCE, broken);
         assertTrue(result.error().isPresent());
         assertTrue(result.error().get().message().contains("Unknown coin material"));
+    }
+
+    @Test
+    void coinsSavedWithTheOldCrestStyleAndSymbolsStillLoad() {
+        JsonObject legacy = encoded();
+        legacy.addProperty("kingdom_crest", "CROWN");
+        legacy.addProperty("style_id", 4);
+        legacy.add("symbols", new com.google.gson.JsonArray());
+        CoinData decoded = CoinData.CODEC.parse(JsonOps.INSTANCE, legacy).getOrThrow();
+        assertEquals("Aldenbruk", decoded.kingdomName());
+        assertEquals(5, decoded.shapeId());
+        // Saving it again drops the unused fields.
+        JsonObject resaved = CoinData.CODEC.encodeStart(JsonOps.INSTANCE, decoded).getOrThrow().getAsJsonObject();
+        assertFalse(resaved.has("style_id"));
+        assertFalse(resaved.has("symbols"));
+        assertFalse(resaved.has("kingdom_crest"));
     }
 }

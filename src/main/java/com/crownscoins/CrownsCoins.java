@@ -111,12 +111,9 @@ public final class CrownsCoins {
             CREATIVE_SAMPLE_KINGDOM_ID,
             "Reino de Exemplo",
             "Moeda de Exemplo",
-            Symbol.CROWN,
             material,
             value,
-            Symbol.CROWN.id(),
-            shapeId,
-            List.of()
+            shapeId
         ));
         return stack;
     }
