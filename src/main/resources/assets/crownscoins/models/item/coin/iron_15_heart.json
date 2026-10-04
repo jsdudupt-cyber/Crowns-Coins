@@ -1,6 +1,0 @@
-{
-  "parent": "minecraft:item/generated",
-  "textures": {
-    "layer0": "crownscoins:item/coin/iron_15_heart"
-  }
-}
